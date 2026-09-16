@@ -102,15 +102,13 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick }) 
 
   useLayoutEffect(() => {
     computeLines();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree]);
+  }, [tree]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onResize = () => computeLines();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!tree || !tree.focus) return null;
 
