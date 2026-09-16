@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ export default function TreePage() {
   const [history, setHistory] = useState([]); // stack of previous focus ids
   const [modalPerson, setModalPerson] = useState(null);
   const [loading, setLoading] = useState(true);
+  const canvasRef = useRef(null);
 
   const loadTree = useCallback(
     async (id) => {
@@ -128,6 +129,7 @@ export default function TreePage() {
 
         {/* Tree canvas */}
         <div
+          ref={canvasRef}
           className="rounded-2xl bg-[#fffdf8] border border-[#e2dacd] overflow-x-auto shadow-sm"
           data-testid="tree-canvas"
         >
@@ -142,6 +144,19 @@ export default function TreePage() {
               showDates={!!user}
               onSelect={handleSelect}
               onFocusClick={handleFocusClick}
+              onLayout={() => {
+                const container = canvasRef.current;
+                if (!container) return;
+                const focusEl = container.querySelector(
+                  `[data-testid="focus-node-${tree.focus?.id}"]`
+                );
+                if (!focusEl) return;
+                const cRect = container.getBoundingClientRect();
+                const fRect = focusEl.getBoundingClientRect();
+                const target =
+                  container.scrollLeft + (fRect.left - cRect.left) - cRect.width / 2 + fRect.width / 2;
+                container.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+              }}
             />
           )}
           {!loading && !tree && (
