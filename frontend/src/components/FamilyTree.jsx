@@ -25,10 +25,12 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   const containerRef = useRef(null);
   const parentsRefs = useRef({});
   const focusRef = useRef(null);
+  const trunkColRef = useRef(null); // ref to trunk column for offset calculations
   const spouseRefs = useRef({}); // all focus spouses (inline first + trunk rows)
   const childRefs = useRef({});
   const childSpouseRefs = useRef({}); // key: `${childId}:${spouseId}`
   const [lines, setLines] = useState([]);
+  const [extraPartnerX, setExtraPartnerX] = useState(null); // px, aligns extras with first partner
 
   const computeLines = () => {
     if (!containerRef.current) return;
@@ -88,12 +90,22 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
     const partnerships = tree.partnerships || [];
     const firstPartner = partnerships[0]?.partner;
     if (firstPartner) {
-      const sr = rect(spouseRefs.current[firstPartner.id]);
+      const fpEl = spouseRefs.current[firstPartner.id];
+      const sr = rect(fpEl);
       if (sr) {
         const y = focusRect.cy;
         const leftInner = Math.min(focusRect.x + focusRect.w, sr.x + sr.w);
         const rightInner = Math.max(focusRect.x, sr.x);
         newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+        // Align subsequent partner rows under the first partner's DOM x
+        if (fpEl && trunkColRef.current) {
+          const fpDom = fpEl.getBoundingClientRect();
+          const trunkDom = trunkColRef.current.getBoundingClientRect();
+          const newX = fpDom.left - trunkDom.left;
+          if (extraPartnerX == null || Math.abs(extraPartnerX - newX) > 0.5) {
+            setExtraPartnerX(newX);
+          }
+        }
       }
     }
 
@@ -229,23 +241,29 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       </div>
 
       {/* Trunk column: partnerships in order (extra partner rows + child rows) */}
-      <div
-        className="relative z-10 flex flex-col gap-4"
-        style={{ paddingLeft: `calc(50% - 80px + ${TRUNK_INDENT}px)` }}
-      >
+      <div ref={trunkColRef} className="relative z-10 flex flex-col gap-4">
         {partnerships.map((p, pIdx) => (
           <React.Fragment key={pIdx}>
             {pIdx > 0 && p.partner && (
               <div
-                ref={(el) => (spouseRefs.current[p.partner.id] = el)}
-                className="w-fit"
+                style={{
+                  paddingLeft:
+                    extraPartnerX != null
+                      ? `${extraPartnerX}px`
+                      : `calc(50% - 80px + ${TRUNK_INDENT}px)`,
+                }}
               >
-                <PersonNode
-                  person={p.partner}
-                  showDates={showDates}
-                  onClick={() => onSelect(p.partner.id)}
-                  testId={`spouse-node-${p.partner.id}`}
-                />
+                <div
+                  ref={(el) => (spouseRefs.current[p.partner.id] = el)}
+                  className="w-fit"
+                >
+                  <PersonNode
+                    person={p.partner}
+                    showDates={showDates}
+                    onClick={() => onSelect(p.partner.id)}
+                    testId={`spouse-node-${p.partner.id}`}
+                  />
+                </div>
               </div>
             )}
             {p.children.map((c) => {
@@ -253,7 +271,11 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
               const firstSp = sps[0];
               const extras = sps.slice(1);
               return (
-                <div key={c.id} className="flex flex-col gap-2">
+                <div
+                  key={c.id}
+                  className="flex flex-col gap-2"
+                  style={{ paddingLeft: `calc(50% - 80px + ${TRUNK_INDENT}px)` }}
+                >
                   <div className="flex items-center gap-4 flex-nowrap w-fit">
                     <div ref={(el) => (childRefs.current[c.id] = el)}>
                       <PersonNode
