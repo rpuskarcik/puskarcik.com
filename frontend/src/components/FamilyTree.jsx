@@ -70,9 +70,9 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
     if (parentEntries.length >= 2) {
       const [a, b] = parentEntries;
       const y = a.r.cy;
-      const leftInner = Math.min(a.r.x + a.r.w, b.r.x + b.r.w);
-      const rightInner = Math.max(a.r.x, b.r.x);
-      newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+      // Center-to-center: portions inside opaque node cards are hidden, so
+      // the visible dashed segment always terminates cleanly at each box edge.
+      newLines.push({ d: `M${a.r.cx},${y} L${b.r.cx},${y}`, kind: "spouse" });
       const midX = (a.r.cx + b.r.cx) / 2;
       const busY = Math.max(a.r.bottom, b.r.bottom) + 18;
       newLines.push({ d: `M${midX},${y} L${midX},${busY}`, kind: "parent" });
@@ -94,9 +94,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       const sr = rect(fpEl);
       if (sr) {
         const y = focusRect.cy;
-        const leftInner = Math.min(focusRect.x + focusRect.w, sr.x + sr.w);
-        const rightInner = Math.max(focusRect.x, sr.x);
-        newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+        newLines.push({ d: `M${focusRect.cx},${y} L${sr.cx},${y}`, kind: "spouse" });
         // Align subsequent partner rows under the first partner's DOM x
         if (fpEl && trunkColRef.current) {
           const fpDom = fpEl.getBoundingClientRect();
@@ -129,11 +127,20 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       const trunkBottom = Math.max(...trunkRows.map((row) => row.r.cy));
       newLines.push({ d: `M${trunkX},${trunkTop} L${trunkX},${trunkBottom}`, kind: "parent" });
       trunkRows.forEach((row) => {
-        const branchKind = row.kind === "partner" ? "spouse" : "parent";
-        newLines.push({
-          d: `M${trunkX},${row.r.cy} L${row.r.x},${row.r.cy}`,
-          kind: branchKind,
-        });
+        // Dashed spouse branches extend to the box CENTER (portion inside the
+        // box is hidden by the opaque node) so the visible endpoint always
+        // meets the box edge cleanly. Solid child branches end at the left edge.
+        if (row.kind === "partner") {
+          newLines.push({
+            d: `M${trunkX},${row.r.cy} L${row.r.cx},${row.r.cy}`,
+            kind: "spouse",
+          });
+        } else {
+          newLines.push({
+            d: `M${trunkX},${row.r.cy} L${row.r.x},${row.r.cy}`,
+            kind: "parent",
+          });
+        }
       });
     }
 
@@ -147,9 +154,8 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
           const firstSr = rect(childSpouseRefs.current[`${c.id}:${sps[0].id}`]);
           if (firstSr) {
             const y = cr.cy;
-            const leftInner = Math.min(cr.x + cr.w, firstSr.x + firstSr.w);
-            const rightInner = Math.max(cr.x, firstSr.x);
-            newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+            // center-to-center dashed marriage line
+            newLines.push({ d: `M${cr.cx},${y} L${firstSr.cx},${y}`, kind: "spouse" });
           }
         }
         const extras = sps.slice(1)
@@ -160,7 +166,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
           const lastY = Math.max(...extras.map((r) => r.cy));
           newLines.push({ d: `M${trunkX},${cr.bottom} L${trunkX},${lastY}`, kind: "spouse" });
           extras.forEach((r) => {
-            newLines.push({ d: `M${trunkX},${r.cy} L${r.x},${r.cy}`, kind: "spouse" });
+            newLines.push({ d: `M${trunkX},${r.cy} L${r.cx},${r.cy}`, kind: "spouse" });
           });
         }
       });
