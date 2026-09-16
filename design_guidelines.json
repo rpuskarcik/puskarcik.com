@@ -1,0 +1,73 @@
+{
+  "project_title": "Interactive Modular Family Tree & Archive",
+  "design_archetype": "ARCHETYPE 1: ORGANIC & EARTHY / VINTAGE ARCHIVE & SWISS PRECISION",
+  "theme_strategy": "Warm heritage parchment background with dark charcoal typography, warm terracotta/amber accents, and crisp modern interactive node cards.",
+  "colors": {
+    "background_light": "#FBF9F5",
+    "background_card": "#FFFFFF",
+    "background_card_hover": "#F5F2EA",
+    "background_header": "#F4EFE6",
+    "foreground": "#1C2024",
+    "muted_foreground": "#687076",
+    "border_default": "#E2DACD",
+    "border_active": "#9E472A",
+    "primary_accent": "#9E472A",
+    "primary_hover": "#7C2D12",
+    "secondary_accent": "#2B4C6F",
+    "male_symbol_bg": "#EBF3FA",
+    "male_symbol_text": "#1D5288",
+    "female_symbol_bg": "#FDF0ED",
+    "female_symbol_text": "#A3371D",
+    "node_focused_bg": "#FFFDF7",
+    "node_focused_border": "#9E472A",
+    "admin_badge_pending_bg": "#FEF3C7",
+    "admin_badge_pending_text": "#92400E",
+    "admin_badge_approved_bg": "#D1FAE5",
+    "admin_badge_approved_text": "#065F46"
+  },
+  "typography": {
+    "heading_font": "Merriweather, Playfair Display, serif",
+    "body_font": "Plus Jakarta Sans, system-ui, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "scales": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-serif font-bold tracking-tight text-[#1C2024]",
+      "h2": "text-2xl sm:text-3xl font-serif font-semibold text-[#1C2024]",
+      "h3": "text-xl sm:text-2xl font-serif font-medium text-[#1C2024]",
+      "card_title": "text-base sm:text-lg font-sans font-semibold text-[#1C2024]",
+      "body": "text-sm sm:text-base font-sans text-[#4A5157]",
+      "caption": "text-xs font-mono text-[#687076]"
+    }
+  },
+  "layout_and_spacing": {
+    "header_banner": "Full width header with high quality vintage family photograph frame, title, search filter bar, focus history breadcrumbs, and user auth/admin buttons.",
+    "tree_canvas": "Interactive infinite/pan-zoom canvas or responsive grid tree view with SVG flow connectors (curved orthogonal lines or clean arrow lines).",
+    "node_card": "Rounded rectangle card with min-w-[160px] to max-w-[220px], px-4 py-3, rounded-xl, border shadow-sm transition-all cursor-pointer.",
+    "modal_dialog": "Clean centered dialog with back-navigation, full biographical profile, life timeline (birth/death dates, locations, spouses, children, parents), and edit button for contributors."
+  },
+  "image_urls": {
+    "header_family_photo": "https://images.unsplash.com/photo-1542216515-4e6a586c1ca0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHx2aW50YWdlJTIwZmFtaWx5JTIwcGhvdG8lMjBwb3J0cmFpdCUyMGhlcml0YWdlJTIwYmxhY2slMjB3aGl0ZSUyMHNlcGlhfGVufDB8fHx8MTc4OTUzMzQ4OXww&ixlib=rb-4.1.0&q=85",
+    "vintage_collection_gallery": "https://images.pexels.com/photos/3617536/pexels-photo-3617536.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "family_portrait_secondary": "https://images.unsplash.com/photo-1542216516-519a107c644a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwZmFtaWx5JTIwcGhvdG8lMjBwb3J0cmFpdCUyMGhlcml0YWdlJTIwYmxhY2slMjB3aGl0ZSUyMHNlcGlhfGVufDB8fHx8MTc4OTUzMzQ4OXww&ixlib=rb-4.1.0&q=85"
+  },
+  "component_path": "/app/frontend/src/components/",
+  "key_features_implementation": {
+    "interactive_tree_canvas": "Render hierarchical family tree centered on current focus node. Display parents above, current person + spouse in center, children below. Support clicking node to re-center tree.",
+    "node_hover_dates": "Tooltip or inline date popover for logged in users showing birth date and death date.",
+    "detailed_person_modal": "Triggered when clicking top/focused person node. Displays detailed info modal with back button to previous tree view state, full timeline, and relationship shortcuts.",
+    "auth_system": "JWT auth with public guest mode, contributor role (can propose changes), and admin role (can approve/reject proposals).",
+    "contributor_portal": "Form to add child, parent, spouse, or update person details. Submissions saved as 'pending' for admin review.",
+    "admin_dashboard": "Review pending changes queue, compare proposed diff with current data, approve or reject with feedback."
+  },
+  "instructions_to_main_agent": [
+    "Retain the clean rounded rectangle node aesthetic inspired by puskarcik.com with prominent ♂ and ♀ symbols.",
+    "Ensure all interactive components have unique data-testid attributes (e.g. data-testid='node-person-1', data-testid='tree-recenter-btn', data-testid='person-detail-modal', data-testid='admin-approve-btn').",
+    "Use standard SVG elements for connecting arrows/lines between nodes so layout adjusts dynamically based on active focus node.",
+    "Maintain high accessibility contrast ratio between node background and person names.",
+    "Provide quick demo buttons for Guest, Contributor, and Admin logins in the navbar for smooth testing."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": {
+    "test_id_convention": "All buttons, inputs, modals, cards, and links must include kebab-case data-testid attributes.",
+    "no_universal_transition": "Do not use transition: all globally. Apply targeted transitions on opacity, colors, border-color, and box-shadow.",
+    "header_styling": "Header must have semi-opaque background with backdrop-blur, never transparent."
+  }
+}
