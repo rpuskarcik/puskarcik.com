@@ -79,16 +79,23 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       newLines.push({ d: `M${focusRect.cx},${midY} L${focusRect.cx},${focusRect.top}`, kind: "parent" });
     }
 
-    // ---------- Focus <-> spouse (dashed) ----------
-    Object.values(spouseRefs.current)
-      .map(rect)
+    // ---------- Focus <-> spouse(s) (dashed) ----------
+    // For multiple spouses, sort focus + spouses left→right and draw a dashed
+    // line between each adjacent pair (edge-to-edge) so lines don't overlap.
+    const focusRowRefs = [
+      { ref: focusRef.current, isFocus: true },
+      ...Object.values(spouseRefs.current).map((el) => ({ ref: el, isFocus: false })),
+    ];
+    const focusRow = focusRowRefs
+      .map(({ ref }) => rect(ref))
       .filter(Boolean)
-      .forEach((sr) => {
-        const y = focusRect.cy;
-        const leftInner = Math.min(focusRect.x + focusRect.w, sr.x + sr.w);
-        const rightInner = Math.max(focusRect.x, sr.x);
-        newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
-      });
+      .sort((a, b) => a.cx - b.cx);
+    for (let i = 0; i < focusRow.length - 1; i++) {
+      const left = focusRow[i];
+      const right = focusRow[i + 1];
+      const y = (left.cy + right.cy) / 2;
+      newLines.push({ d: `M${left.x + left.w},${y} L${right.x},${y}`, kind: "spouse" });
+    }
 
     // ---------- Children (vertical spine) ----------
     const childEntries = Object.entries(childRefs.current)
@@ -108,17 +115,26 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       });
     }
 
-    // ---------- Child <-> child-spouse (dashed) ----------
+    // ---------- Child <-> child-spouse(s) (dashed) ----------
+    // Group spouse refs by child id, then draw adjacent-pair dashed lines
+    // for [child, spouse1, spouse2, ...] sorted left→right.
+    const childSpouseByChild = {};
     Object.entries(childSpouseRefs.current).forEach(([key, el]) => {
       const [childId] = key.split(":");
+      (childSpouseByChild[childId] ||= []).push(el);
+    });
+    Object.entries(childSpouseByChild).forEach(([childId, els]) => {
       const childEl = childRefs.current[childId];
-      const cr = rect(childEl);
-      const sr = rect(el);
-      if (!cr || !sr) return;
-      const y = cr.cy;
-      const leftInner = Math.min(cr.x + cr.w, sr.x + sr.w);
-      const rightInner = Math.max(cr.x, sr.x);
-      newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+      const rowRects = [childEl, ...els]
+        .map(rect)
+        .filter(Boolean)
+        .sort((a, b) => a.cx - b.cx);
+      for (let i = 0; i < rowRects.length - 1; i++) {
+        const left = rowRects[i];
+        const right = rowRects[i + 1];
+        const y = (left.cy + right.cy) / 2;
+        newLines.push({ d: `M${left.x + left.w},${y} L${right.x},${y}`, kind: "spouse" });
+      }
     });
 
     setLines(newLines);
