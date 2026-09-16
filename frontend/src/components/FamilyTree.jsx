@@ -204,7 +204,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
           {children.map((c) => {
             const sps = childSpouses[c.id] || [];
             return (
-              <div key={c.id} className="flex items-center gap-6 flex-wrap">
+              <div key={c.id} className="flex items-center gap-6 flex-nowrap">
                 <div ref={(el) => (childRefs.current[c.id] = el)}>
                   <PersonNode
                     person={c}
