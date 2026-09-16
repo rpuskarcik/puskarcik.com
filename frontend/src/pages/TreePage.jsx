@@ -130,7 +130,7 @@ export default function TreePage() {
         {/* Tree canvas */}
         <div
           ref={canvasRef}
-          className="rounded-2xl bg-[#fffdf8] border border-[#e2dacd] overflow-x-auto shadow-sm"
+          className="rounded-2xl bg-[#fffdf8] border border-[#e2dacd] shadow-sm"
           data-testid="tree-canvas"
         >
           {loading && (
