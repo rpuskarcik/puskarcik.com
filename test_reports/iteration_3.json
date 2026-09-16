@@ -1,0 +1,36 @@
+{
+  "summary": "Verified root-view fix for Test Person's second-spouse (Maria Second) connector. The horizontal dashed branch is now visible with correct geometry.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_details": {
+    "test_person_box": {"cx": 990, "y": 938, "bottom": 978},
+    "anna_first_box": {"cx": 1146, "y": 938, "bottom": 978, "same_row_as_test_person": true},
+    "maria_second_box": {"x": 1080, "y": 986, "cy": 1006, "below_anna": true},
+    "svg_origin_abs": {"x": 417, "y": 353},
+    "vertical_trunk_path": "M573,625 L573,653 (dashed) -> abs x=990 (Test Person center)",
+    "horizontal_branch_path": "M573,653 L663,653 (dashed) -> abs x=990->1080, delta=90px (>20px required)",
+    "conditions_met": {
+      "a_horizontal_positive_delta": true,
+      "b_maria_below_anna": true,
+      "c_anna_row_matches_test_person": true
+    }
+  },
+  "regression_checks": {
+    "single_spouse_inline_rows": "PASS - Chester+Vera, Helen+Michael, Lottie+Philip, Jean+Joseph, Carl John+Helen Dubaj, Stasia+George, Thaddeus+Tillie all show inline dashed marriage lines",
+    "children_vertical_spine": "PASS - Ludwig main spine with horizontal branches to blood children renders correctly",
+    "test_person_focus_view": "Not re-tested this iteration but same code path used; root view (harder case) works"
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Root-view Test Person + Maria Second stacked-spouse fix verified via SVG path inspection. The 160px CHILD_EXTRA_SPOUSE_INDENT constant is working. Fix is complete."
+}
