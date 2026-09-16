@@ -164,6 +164,15 @@ function ChangeCard({ change, people, onApprove, onReject }) {
             <div><span className="font-mono text-[11px] text-[#687076]">KIND:</span> {p.kind}</div>
             <div><span className="font-mono text-[11px] text-[#687076]">A:</span> {people[p.a_id]?.name || p.a_id}</div>
             <div><span className="font-mono text-[11px] text-[#687076]">B:</span> {people[p.b_id]?.name || p.b_id}</div>
+            {p.wed_date && <div><span className="font-mono text-[11px] text-[#687076]">WEDDING:</span> {p.wed_date}</div>}
+          </div>
+        )}
+        {change.kind === "delete_person" && (
+          <div className="text-[#a3371d]">
+            <span className="font-mono text-[11px] text-[#687076]">TARGET:</span> {people[p.id]?.name || p.id}
+            <div className="mt-1 text-xs text-[#7c2d12]">
+              Approving will permanently remove this person and every relationship attached to them.
+            </div>
           </div>
         )}
       </div>

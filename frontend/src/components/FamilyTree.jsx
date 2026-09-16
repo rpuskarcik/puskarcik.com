@@ -30,6 +30,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   const childRefs = useRef({});
   const childSpouseRefs = useRef({}); // key: `${childId}:${spouseId}`
   const [lines, setLines] = useState([]);
+  const [hoveredWedDate, setHoveredWedDate] = useState(null); // {x, y, text}
   const [extraPartnerX, setExtraPartnerX] = useState(null); // px, aligns extras with first partner
 
   const computeLines = () => {
@@ -57,6 +58,15 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       };
     };
     const newLines = [];
+    // Helper: attach a wed_date to the most-recently-pushed line, along with
+    // the midpoint used for the hover tooltip anchor.
+    const attachWed = (midX, midY, text) => {
+      if (!text || newLines.length === 0) return;
+      const last = newLines[newLines.length - 1];
+      last.wedDate = text;
+      last.midX = midX;
+      last.midY = midY;
+    };
     const focusRect = rect(focusRef.current);
     if (!focusRect) {
       setLines([]);
@@ -73,6 +83,8 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       // Center-to-center: portions inside opaque node cards are hidden, so
       // the visible dashed segment always terminates cleanly at each box edge.
       newLines.push({ d: `M${a.r.cx},${y} L${b.r.cx},${y}`, kind: "spouse" });
+      // Wedding date hover anchor: midpoint between the two parents on that line
+      attachWed((a.r.cx + b.r.cx) / 2, y, tree.parents_wed_date);
       const midX = (a.r.cx + b.r.cx) / 2;
       const busY = Math.max(a.r.bottom, b.r.bottom) + 18;
       newLines.push({ d: `M${midX},${y} L${midX},${busY}`, kind: "parent" });
@@ -95,6 +107,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       if (sr) {
         const y = focusRect.cy;
         newLines.push({ d: `M${focusRect.cx},${y} L${sr.cx},${y}`, kind: "spouse" });
+        attachWed((focusRect.cx + sr.cx) / 2, y, (tree.spouse_wed_dates || {})[firstPartner.id]);
         // Align subsequent partner rows under the first partner's DOM x
         if (fpEl && trunkColRef.current) {
           const fpDom = fpEl.getBoundingClientRect();
@@ -113,7 +126,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
     partnerships.forEach((p, pIdx) => {
       if (pIdx > 0 && p.partner) {
         const r = rect(spouseRefs.current[p.partner.id]);
-        if (r) trunkRows.push({ kind: "partner", r });
+        if (r) trunkRows.push({ kind: "partner", r, wedDate: (tree.spouse_wed_dates || {})[p.partner.id] });
       }
       p.children.forEach((c) => {
         const r = rect(childRefs.current[c.id]);
@@ -135,6 +148,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
             d: `M${trunkX},${row.r.cy} L${row.r.cx},${row.r.cy}`,
             kind: "spouse",
           });
+          attachWed((trunkX + row.r.cx) / 2, row.r.cy, row.wedDate);
         } else {
           newLines.push({
             d: `M${trunkX},${row.r.cy} L${row.r.x},${row.r.cy}`,
@@ -156,17 +170,19 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
             const y = cr.cy;
             // center-to-center dashed marriage line
             newLines.push({ d: `M${cr.cx},${y} L${firstSr.cx},${y}`, kind: "spouse" });
+            attachWed((cr.cx + firstSr.cx) / 2, y, (tree.child_spouse_wed_dates || {})[`${c.id}:${sps[0].id}`]);
           }
         }
         const extras = sps.slice(1)
-          .map((sp) => rect(childSpouseRefs.current[`${c.id}:${sp.id}`]))
-          .filter(Boolean);
+          .map((sp) => ({ sp, r: rect(childSpouseRefs.current[`${c.id}:${sp.id}`]) }))
+          .filter((x) => x.r);
         if (extras.length > 0) {
           const trunkX = cr.cx;
-          const lastY = Math.max(...extras.map((r) => r.cy));
+          const lastY = Math.max(...extras.map((x) => x.r.cy));
           newLines.push({ d: `M${trunkX},${cr.bottom} L${trunkX},${lastY}`, kind: "spouse" });
-          extras.forEach((r) => {
+          extras.forEach(({ sp, r }) => {
             newLines.push({ d: `M${trunkX},${r.cy} L${r.cx},${r.cy}`, kind: "spouse" });
+            attachWed((trunkX + r.cx) / 2, r.cy, (tree.child_spouse_wed_dates || {})[`${c.id}:${sp.id}`]);
           });
         }
       });
@@ -203,9 +219,49 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
         style={{ zIndex: 0 }}
       >
         {lines.map((l, i) => (
-          <path key={i} d={l.d} className={`tree-line ${l.kind === "spouse" ? "spouse" : ""}`} />
+          <path
+            key={`v-${i}`}
+            d={l.d}
+            className={`tree-line ${l.kind === "spouse" ? "spouse" : ""}`}
+          />
         ))}
       </svg>
+      {/* Hit paths in a top-layer SVG so they receive hover above node columns */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        style={{ zIndex: 20, pointerEvents: "none" }}
+      >
+        {lines.map((l, i) =>
+          l.wedDate ? (
+            <path
+              key={`h-${i}`}
+              d={l.d}
+              stroke="rgba(0,0,0,0)"
+              strokeWidth={18}
+              fill="none"
+              style={{ pointerEvents: "stroke", cursor: "help" }}
+              onMouseOver={() =>
+                setHoveredWedDate({ x: l.midX, y: l.midY, text: l.wedDate })
+              }
+              onMouseOut={() => setHoveredWedDate(null)}
+            />
+          ) : null
+        )}
+      </svg>
+      {hoveredWedDate && (
+        <div
+          className="absolute font-mono text-[11px] tracking-tight text-[#fbf9f5] bg-[#1c2024] px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap"
+          style={{
+            left: hoveredWedDate.x,
+            top: hoveredWedDate.y - 14,
+            transform: "translate(-50%, -100%)",
+            zIndex: 30,
+          }}
+          data-testid="wed-date-tooltip"
+        >
+          m. {hoveredWedDate.text}
+        </div>
+      )}
 
       {/* Parents row */}
       {parents.length > 0 && (

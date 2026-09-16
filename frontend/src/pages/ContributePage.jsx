@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, formatApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 export default function ContributePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get("edit");
   const [people, setPeople] = useState([]);
   const [error, setError] = useState("");
+  const [applyNow, setApplyNow] = useState(false);
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     if (!loading && !user) navigate("/login");
@@ -27,8 +32,33 @@ export default function ContributePage() {
   const submitChange = async (kind, payload, note) => {
     setError("");
     try {
-      await api.post("/changes", { kind, payload, note });
-      toast.success("Submitted for admin review");
+      if (isAdmin && applyNow) {
+        // Bypass approval queue and hit direct admin endpoints
+        if (kind === "add_person") {
+          const { data: created } = await api.post("/admin/people", payload);
+          // If connection fields present, add relationship(s) directly
+          if (payload.parent_id) {
+            await api.post("/admin/relationships", { kind: "parent_child", a_id: payload.parent_id, b_id: created.id });
+          }
+          if (payload.child_id) {
+            await api.post("/admin/relationships", { kind: "parent_child", a_id: created.id, b_id: payload.child_id });
+          }
+          if (payload.spouse_id) {
+            await api.post("/admin/relationships", { kind: "spouse", a_id: created.id, b_id: payload.spouse_id, wed_date: payload.wed_date });
+          }
+        } else if (kind === "edit_person") {
+          const { id, ...rest } = payload;
+          await api.patch(`/admin/people/${id}`, rest);
+        } else if (kind === "delete_person") {
+          await api.delete(`/admin/people/${payload.id}`);
+        } else if (kind === "add_relationship") {
+          await api.post("/admin/relationships", payload);
+        }
+        toast.success("Applied immediately");
+      } else {
+        await api.post("/changes", { kind, payload, note });
+        toast.success("Submitted for admin review");
+      }
       return true;
     } catch (e) {
       setError(formatApiError(e.response?.data?.detail) || e.message);
@@ -37,6 +67,8 @@ export default function ContributePage() {
   };
 
   if (loading || !user) return null;
+
+  const defaultTab = editParamId ? "edit" : "add";
 
   return (
     <div className="parchment min-h-screen">
@@ -49,9 +81,25 @@ export default function ContributePage() {
             Propose an update
           </h1>
           <p className="text-[#687076] mt-2">
-            Every submission is queued for approval by the family curator.
+            {isAdmin
+              ? "As curator, you can submit for review OR apply changes immediately."
+              : "Every submission is queued for approval by the family curator."}
           </p>
         </div>
+
+        {isAdmin && (
+          <div className="mb-4 flex items-center gap-2 p-3 bg-[#fdf0ed] border border-[#f4c9c1] rounded-md">
+            <Checkbox
+              id="apply-now"
+              checked={applyNow}
+              onCheckedChange={(v) => setApplyNow(!!v)}
+              data-testid="admin-apply-now"
+            />
+            <Label htmlFor="apply-now" className="text-sm text-[#7c2d12] cursor-pointer">
+              Apply changes immediately (skip approval queue)
+            </Label>
+          </div>
+        )}
 
         {error && (
           <div className="text-sm text-[#a3371d] bg-[#fdf0ed] border border-[#f4c9c1] rounded px-3 py-2 mb-4">
@@ -59,10 +107,11 @@ export default function ContributePage() {
           </div>
         )}
 
-        <Tabs defaultValue="add" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="bg-[#f5f2ea] border border-[#e2dacd]">
             <TabsTrigger value="add" data-testid="tab-add-person">Add person</TabsTrigger>
             <TabsTrigger value="edit" data-testid="tab-edit-person">Edit person</TabsTrigger>
+            <TabsTrigger value="delete" data-testid="tab-delete-person">Delete</TabsTrigger>
             <TabsTrigger value="rel" data-testid="tab-add-rel">Add relationship</TabsTrigger>
           </TabsList>
 
@@ -70,7 +119,10 @@ export default function ContributePage() {
             <AddPersonForm people={people} onSubmit={submitChange} />
           </TabsContent>
           <TabsContent value="edit">
-            <EditPersonForm people={people} onSubmit={submitChange} />
+            <EditPersonForm people={people} onSubmit={submitChange} initialId={editParamId} />
+          </TabsContent>
+          <TabsContent value="delete">
+            <DeletePersonForm people={people} onSubmit={submitChange} />
           </TabsContent>
           <TabsContent value="rel">
             <AddRelForm people={people} onSubmit={submitChange} />
@@ -181,11 +233,15 @@ function AddPersonForm({ people, onSubmit }) {
   );
 }
 
-function EditPersonForm({ people, onSubmit }) {
-  const [id, setId] = useState("");
+function EditPersonForm({ people, onSubmit, initialId }) {
+  const [id, setId] = useState(initialId || "");
   const [fields, setFields] = useState({});
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (initialId) setId(initialId);
+  }, [initialId]);
 
   const chosen = people.find((p) => p.id === id);
 
@@ -250,7 +306,7 @@ function EditPersonForm({ people, onSubmit }) {
 }
 
 function AddRelForm({ people, onSubmit }) {
-  const [form, setForm] = useState({ kind: "parent_child", a_id: "", b_id: "" });
+  const [form, setForm] = useState({ kind: "parent_child", a_id: "", b_id: "", wed_date: "" });
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -258,9 +314,11 @@ function AddRelForm({ people, onSubmit }) {
     e.preventDefault();
     if (!form.a_id || !form.b_id) return;
     setBusy(true);
-    const ok = await onSubmit("add_relationship", form, note);
+    const payload = { kind: form.kind, a_id: form.a_id, b_id: form.b_id };
+    if (form.kind === "spouse" && form.wed_date) payload.wed_date = form.wed_date;
+    const ok = await onSubmit("add_relationship", payload, note);
     setBusy(false);
-    if (ok) setForm({ ...form, a_id: "", b_id: "" });
+    if (ok) setForm({ ...form, a_id: "", b_id: "", wed_date: "" });
   };
 
   return (
@@ -295,12 +353,72 @@ function AddRelForm({ people, onSubmit }) {
           </Select>
         </div>
       </div>
+      {form.kind === "spouse" && (
+        <div>
+          <Label>Wedding date (optional)</Label>
+          <Input
+            value={form.wed_date}
+            onChange={(e) => setForm({ ...form, wed_date: e.target.value })}
+            placeholder="e.g. 1938 or 1938-06-14"
+            data-testid="ar-wed-date"
+          />
+        </div>
+      )}
       <div>
         <Label>Note to curator</Label>
         <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} data-testid="ar-note" />
       </div>
       <Button type="submit" disabled={busy} className="bg-[#9e472a] hover:bg-[#7c2d12] text-[#fbf9f5]" data-testid="ar-submit">
-        {busy ? "Submitting…" : "Submit for review"}
+        {busy ? "Submitting…" : "Submit"}
+      </Button>
+    </form>
+  );
+}
+
+function DeletePersonForm({ people, onSubmit }) {
+  const [id, setId] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const chosen = people.find((p) => p.id === id);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!id) return;
+    setBusy(true);
+    const ok = await onSubmit("delete_person", { id }, reason);
+    setBusy(false);
+    if (ok) { setId(""); setReason(""); }
+  };
+
+  return (
+    <form onSubmit={submit} className="bg-[#fffdf8] border border-[#e2dacd] rounded-2xl p-6 mt-4 space-y-4" data-testid="delete-person-form">
+      <div>
+        <Label>Person to delete</Label>
+        <Select value={id} onValueChange={setId}>
+          <SelectTrigger data-testid="dp-person"><SelectValue placeholder="Select…" /></SelectTrigger>
+          <SelectContent className="max-h-72">
+            {people.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      {chosen && (
+        <div className="text-sm text-[#7c2d12] bg-[#fdf0ed] border border-[#f4c9c1] rounded px-3 py-2">
+          This will remove <span className="font-semibold">{chosen.name}</span> and every parent/child/spouse relationship attached to them.
+        </div>
+      )}
+      <div>
+        <Label>Reason (required)</Label>
+        <Textarea
+          rows={3}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="e.g. duplicate entry from test data"
+          required
+          data-testid="dp-reason"
+        />
+      </div>
+      <Button type="submit" disabled={busy || !id || !reason} className="bg-[#a3371d] hover:bg-[#7c2d12] text-white" data-testid="dp-submit">
+        {busy ? "Submitting…" : "Submit deletion"}
       </Button>
     </form>
   );

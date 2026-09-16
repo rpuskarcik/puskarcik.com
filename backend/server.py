@@ -138,6 +138,7 @@ class RelationshipInput(BaseModel):
     kind: Literal["parent_child", "spouse"]
     a_id: str  # parent (for parent_child) or spouse a
     b_id: str  # child (for parent_child) or spouse b
+    wed_date: Optional[str] = None  # only meaningful for spouse; free text (e.g. "1938")
 
 
 class ChangeSubmit(BaseModel):
@@ -275,11 +276,15 @@ async def get_tree(person_id: str, request: Request):
     child_rels = await db.relationships.find({"kind": "parent_child", "a_id": person_id}).to_list(500)
     child_ids = [r["b_id"] for r in child_rels]
 
-    # Spouses: spouse relationships involving focus
+    # Spouses: spouse relationships involving focus (also capture wed_date)
     spouse_rels = await db.relationships.find(
         {"kind": "spouse", "$or": [{"a_id": person_id}, {"b_id": person_id}]}
     ).to_list(20)
     spouse_ids = [(r["b_id"] if r["a_id"] == person_id else r["a_id"]) for r in spouse_rels]
+    spouse_wed_dates = {
+        (r["b_id"] if r["a_id"] == person_id else r["a_id"]): r.get("wed_date")
+        for r in spouse_rels
+    }
 
     # Siblings: other children of any parent
     sibling_ids = set()
@@ -293,15 +298,32 @@ async def get_tree(person_id: str, request: Request):
 
     # Also fetch spouses of children (so children show with their partners)
     child_spouse_map = {}
+    child_spouse_wed_dates = {}  # key: "{child_id}:{spouse_id}" -> wed_date
     if child_ids:
         cs_rels = await db.relationships.find(
             {"kind": "spouse", "$or": [{"a_id": {"$in": child_ids}}, {"b_id": {"$in": child_ids}}]}
         ).to_list(500)
         for r in cs_rels:
+            wd = r.get("wed_date")
             if r["a_id"] in child_ids:
                 child_spouse_map.setdefault(r["a_id"], []).append(r["b_id"])
+                child_spouse_wed_dates[f"{r['a_id']}:{r['b_id']}"] = wd
             if r["b_id"] in child_ids:
                 child_spouse_map.setdefault(r["b_id"], []).append(r["a_id"])
+                child_spouse_wed_dates[f"{r['b_id']}:{r['a_id']}"] = wd
+
+    # Parents' marriage date (between the two known parents)
+    parents_wed_date = None
+    if len(parent_ids) >= 2:
+        pw = await db.relationships.find_one({
+            "kind": "spouse",
+            "$or": [
+                {"a_id": parent_ids[0], "b_id": parent_ids[1]},
+                {"a_id": parent_ids[1], "b_id": parent_ids[0]},
+            ],
+        })
+        if pw:
+            parents_wed_date = pw.get("wed_date")
 
     all_ids = set(parent_ids) | set(child_ids) | set(spouse_ids) | sibling_ids | {person_id}
     for lst in child_spouse_map.values():
@@ -351,6 +373,9 @@ async def get_tree(person_id: str, request: Request):
         "siblings": [people_map[i] for i in sibling_ids if i in people_map],
         "child_spouses": {cid: [people_map[i] for i in sids if i in people_map] for cid, sids in child_spouse_map.items()},
         "partnerships": partnerships,
+        "spouse_wed_dates": spouse_wed_dates,
+        "child_spouse_wed_dates": child_spouse_wed_dates,
+        "parents_wed_date": parents_wed_date,
         "is_authed": is_authed,
     }
 
@@ -461,6 +486,8 @@ async def apply_change(change: dict):
             "a_id": payload["a_id"],
             "b_id": payload["b_id"],
         }
+        if payload.get("wed_date"):
+            rel["wed_date"] = payload["wed_date"]
         await db.relationships.insert_one(rel)
         return {"new_rel_id": rel["id"]}
     elif kind == "delete_relationship":
