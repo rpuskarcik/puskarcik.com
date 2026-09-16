@@ -2,30 +2,30 @@ import React, { useEffect, useRef, useState, useLayoutEffect } from "react";
 import PersonNode from "./PersonNode";
 
 /**
- * Vertical layout:
+ * Vertical trunk layout:
  *
- *   Parents row:    [ Father ] ---dashed--- [ Mother ]
- *                                  |
- *   Focus row:      [ FOCUS ] ---dashed--- [ Spouse 1 ]
+ *   Parents:       [ Father ] ---dashed--- [ Mother ]
+ *                                 |
+ *   Focus row:     [ FOCUS ] ---dashed--- [ 1st Partner (inline) ]
  *                     |
- *                     +--- [ Spouse 2 ]    (each extra spouse on its own row)
- *                     |                     joined by a dashed line dropping
- *                     +--- [ Spouse 3 ]     from the person's center-bottom.
- *                                  |     (children spine)
- *                                  +------[ Child 1 ] ---dashed--- [ Spouse 1 ]
- *                                  |         |
- *                                  |         +--- [ Spouse 2 ]
- *                                  |
- *                                  +------[ Child 2 ] ---dashed--- [ Spouse 1 ]
+ *                     +--- [ Child of 1st partnership ]
+ *                     |
+ *                     +---dashed--- [ 2nd Partner ]
+ *                     |
+ *                     +--- [ Child of 2nd partnership ]
+ *                     +--- [ Another Child of 2nd partnership ]
  *
- * All spouses beyond the first stack vertically under their partner.
+ * A single continuous SOLID vertical trunk drops from the focus person. Each
+ * row hanging off it is either a SOLID branch (a child of the focus) or a
+ * DASHED branch (an additional spouse / marriage marker). Rows appear in
+ * partnership order: partner (if any) → their children, next partner → their
+ * children, etc.
  */
 export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, onLayout }) {
   const containerRef = useRef(null);
   const parentsRefs = useRef({});
   const focusRef = useRef(null);
-  const focusBlockRef = useRef(null); // wraps focus row + extra spouse rows
-  const spouseRefs = useRef({}); // all focus spouses, keyed by spouse id
+  const spouseRefs = useRef({}); // all focus spouses (inline first + trunk rows)
   const childRefs = useRef({});
   const childSpouseRefs = useRef({}); // key: `${childId}:${spouseId}`
   const [lines, setLines] = useState([]);
@@ -33,7 +33,6 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   const computeLines = () => {
     if (!containerRef.current) return;
 
-    // Purge stale DOM references
     [parentsRefs, childRefs, spouseRefs, childSpouseRefs].forEach((mapRef) => {
       Object.keys(mapRef.current).forEach((k) => {
         if (!mapRef.current[k]?.isConnected) delete mapRef.current[k];
@@ -62,7 +61,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       return;
     }
 
-    // ---------- Parents row (horizontal couple) ----------
+    // ---------- Parents row ----------
     const parentEntries = Object.entries(parentsRefs.current)
       .map(([id, el]) => ({ id, r: rect(el) }))
       .filter((e) => e.r);
@@ -85,11 +84,11 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       newLines.push({ d: `M${focusRect.cx},${midY} L${focusRect.cx},${focusRect.top}`, kind: "parent" });
     }
 
-    // ---------- Focus <-> first spouse (inline, horizontal dashed) ----------
-    const focusSpouses = tree.spouses || [];
-    if (focusSpouses.length > 0) {
-      const firstSpouseId = focusSpouses[0].id;
-      const sr = rect(spouseRefs.current[firstSpouseId]);
+    // ---------- Focus <-> first partner (inline dashed) ----------
+    const partnerships = tree.partnerships || [];
+    const firstPartner = partnerships[0]?.partner;
+    if (firstPartner) {
+      const sr = rect(spouseRefs.current[firstPartner.id]);
       if (sr) {
         const y = focusRect.cy;
         const leftInner = Math.min(focusRect.x + focusRect.w, sr.x + sr.w);
@@ -98,62 +97,61 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       }
     }
 
-    // ---------- Focus extras: trunk down from focus + 90° branch to each ----------
-    const focusExtras = focusSpouses.slice(1)
-      .map((sp) => rect(spouseRefs.current[sp.id]))
-      .filter(Boolean);
-    if (focusExtras.length > 0) {
-      const trunkX = focusRect.cx;
-      const lastY = Math.max(...focusExtras.map((r) => r.cy));
-      newLines.push({ d: `M${trunkX},${focusRect.bottom} L${trunkX},${lastY}`, kind: "spouse" });
-      focusExtras.forEach((r) => {
-        newLines.push({ d: `M${trunkX},${r.cy} L${r.x},${r.cy}`, kind: "spouse" });
+    // ---------- Trunk column (single solid vertical + branches) ----------
+    // Build the ordered list of trunk rows in the exact order they were rendered.
+    const trunkRows = [];
+    partnerships.forEach((p, pIdx) => {
+      if (pIdx > 0 && p.partner) {
+        const r = rect(spouseRefs.current[p.partner.id]);
+        if (r) trunkRows.push({ kind: "partner", r });
+      }
+      p.children.forEach((c) => {
+        const r = rect(childRefs.current[c.id]);
+        if (r) trunkRows.push({ kind: "child", r });
       });
-    }
+    });
 
-    // ---------- Children spine (from bottom of focus block) ----------
-    const focusBlockRect = rect(focusBlockRef.current) || focusRect;
-    const childEntries = Object.entries(childRefs.current)
-      .map(([id, el]) => ({ id, r: rect(el) }))
-      .filter((c) => c.r);
-
-    if (childEntries.length > 0) {
-      const spineX = focusRect.cx;
-      const spineTop = focusBlockRect.bottom;
-      const spineBottom = Math.max(...childEntries.map((c) => c.r.cy));
-      newLines.push({ d: `M${spineX},${spineTop} L${spineX},${spineBottom}`, kind: "parent" });
-      childEntries.forEach((c) => {
-        newLines.push({ d: `M${spineX},${c.r.cy} L${c.r.x},${c.r.cy}`, kind: "parent" });
+    if (trunkRows.length > 0) {
+      const trunkX = focusRect.cx;
+      const trunkTop = focusRect.bottom;
+      const trunkBottom = Math.max(...trunkRows.map((row) => row.r.cy));
+      newLines.push({ d: `M${trunkX},${trunkTop} L${trunkX},${trunkBottom}`, kind: "parent" });
+      trunkRows.forEach((row) => {
+        const branchKind = row.kind === "partner" ? "spouse" : "parent";
+        newLines.push({
+          d: `M${trunkX},${row.r.cy} L${row.r.x},${row.r.cy}`,
+          kind: branchKind,
+        });
       });
     }
 
     // ---------- Per-child: first spouse inline + extras stacked ----------
-    (tree.children || []).forEach((c) => {
-      const cr = rect(childRefs.current[c.id]);
-      if (!cr) return;
-      const sps = (tree.child_spouses || {})[c.id] || [];
-      // Inline (first) spouse: horizontal dashed
-      if (sps.length > 0) {
-        const firstSr = rect(childSpouseRefs.current[`${c.id}:${sps[0].id}`]);
-        if (firstSr) {
-          const y = cr.cy;
-          const leftInner = Math.min(cr.x + cr.w, firstSr.x + firstSr.w);
-          const rightInner = Math.max(cr.x, firstSr.x);
-          newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+    partnerships.forEach((p) => {
+      p.children.forEach((c) => {
+        const cr = rect(childRefs.current[c.id]);
+        if (!cr) return;
+        const sps = (tree.child_spouses || {})[c.id] || [];
+        if (sps.length > 0) {
+          const firstSr = rect(childSpouseRefs.current[`${c.id}:${sps[0].id}`]);
+          if (firstSr) {
+            const y = cr.cy;
+            const leftInner = Math.min(cr.x + cr.w, firstSr.x + firstSr.w);
+            const rightInner = Math.max(cr.x, firstSr.x);
+            newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+          }
         }
-      }
-      // Extras: trunk from child bottom + 90° branch to each
-      const extras = sps.slice(1)
-        .map((sp) => rect(childSpouseRefs.current[`${c.id}:${sp.id}`]))
-        .filter(Boolean);
-      if (extras.length > 0) {
-        const trunkX = cr.cx;
-        const lastY = Math.max(...extras.map((r) => r.cy));
-        newLines.push({ d: `M${trunkX},${cr.bottom} L${trunkX},${lastY}`, kind: "spouse" });
-        extras.forEach((r) => {
-          newLines.push({ d: `M${trunkX},${r.cy} L${r.x},${r.cy}`, kind: "spouse" });
-        });
-      }
+        const extras = sps.slice(1)
+          .map((sp) => rect(childSpouseRefs.current[`${c.id}:${sp.id}`]))
+          .filter(Boolean);
+        if (extras.length > 0) {
+          const trunkX = cr.cx;
+          const lastY = Math.max(...extras.map((r) => r.cy));
+          newLines.push({ d: `M${trunkX},${cr.bottom} L${trunkX},${lastY}`, kind: "spouse" });
+          extras.forEach((r) => {
+            newLines.push({ d: `M${trunkX},${r.cy} L${r.x},${r.cy}`, kind: "spouse" });
+          });
+        }
+      });
     });
 
     setLines(newLines);
@@ -173,16 +171,12 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   if (!tree || !tree.focus) return null;
 
   const parents = tree.parents || [];
-  const spouses = tree.spouses || [];
-  const children = tree.children || [];
+  const partnerships = tree.partnerships || [{ partner: null, children: [] }];
+  const firstPartner = partnerships[0]?.partner || null;
   const childSpouses = tree.child_spouses || {};
 
-  const firstSpouse = spouses[0];
-  const extraSpouses = spouses.slice(1);
-
-  const CHILD_INDENT = 40;
-  const EXTRA_SPOUSE_INDENT = 40; // focus-row extras (relative to horizontal center)
-  const CHILD_EXTRA_SPOUSE_INDENT = 160; // child-row extras (relative to child block left)
+  const TRUNK_INDENT = 40;
+  const CHILD_EXTRA_SPOUSE_INDENT = 160;
 
   return (
     <div ref={containerRef} className="relative py-10 px-6" data-testid="family-tree">
@@ -211,112 +205,107 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
         </div>
       )}
 
-      {/* Focus block: focus row + any extra spouse rows */}
-      <div ref={focusBlockRef} className="relative z-10 mb-12">
-        <div className="flex justify-center items-center gap-14 flex-nowrap">
-          <div ref={focusRef}>
-            <PersonNode
-              person={tree.focus}
-              focused
-              showDates={showDates}
-              onClick={() => onFocusClick(tree.focus)}
-              testId={`focus-node-${tree.focus.id}`}
-            />
-          </div>
-          {firstSpouse && (
-            <div ref={(el) => (spouseRefs.current[firstSpouse.id] = el)}>
-              <PersonNode
-                person={firstSpouse}
-                showDates={showDates}
-                onClick={() => onSelect(firstSpouse.id)}
-                testId={`spouse-node-${firstSpouse.id}`}
-              />
-            </div>
-          )}
+      {/* Focus row: focus + first partner (inline) */}
+      <div className="relative z-10 flex justify-center items-center gap-14 mb-8 flex-nowrap">
+        <div ref={focusRef}>
+          <PersonNode
+            person={tree.focus}
+            focused
+            showDates={showDates}
+            onClick={() => onFocusClick(tree.focus)}
+            testId={`focus-node-${tree.focus.id}`}
+          />
         </div>
-        {extraSpouses.length > 0 && (
-          <div className="flex flex-col gap-3 mt-3">
-            {extraSpouses.map((sp) => (
-              <div
-                key={sp.id}
-                className="flex"
-                style={{ paddingLeft: `calc(50% + ${EXTRA_SPOUSE_INDENT}px)` }}
-              >
-                <div ref={(el) => (spouseRefs.current[sp.id] = el)}>
-                  <PersonNode
-                    person={sp}
-                    showDates={showDates}
-                    onClick={() => onSelect(sp.id)}
-                    testId={`spouse-node-${sp.id}`}
-                  />
-                </div>
-              </div>
-            ))}
+        {firstPartner && (
+          <div ref={(el) => (spouseRefs.current[firstPartner.id] = el)}>
+            <PersonNode
+              person={firstPartner}
+              showDates={showDates}
+              onClick={() => onSelect(firstPartner.id)}
+              testId={`spouse-node-${firstPartner.id}`}
+            />
           </div>
         )}
       </div>
 
-      {/* Children column: each child block = child row + its extras */}
-      {children.length > 0 && (
-        <div
-          className="relative z-10 flex flex-col gap-4"
-          style={{ paddingLeft: `calc(50% - 80px + ${CHILD_INDENT}px)` }}
-        >
-          {children.map((c) => {
-            const sps = childSpouses[c.id] || [];
-            const firstSp = sps[0];
-            const extras = sps.slice(1);
-            return (
-              <div key={c.id} className="flex flex-col gap-2">
-                <div className="flex items-center gap-4 flex-nowrap">
-                  <div ref={(el) => (childRefs.current[c.id] = el)}>
-                    <PersonNode
-                      person={c}
-                      showDates={showDates}
-                      onClick={() => onSelect(c.id)}
-                      testId={`child-node-${c.id}`}
-                    />
-                  </div>
-                  {firstSp && (
-                    <div
-                      ref={(el) => (childSpouseRefs.current[`${c.id}:${firstSp.id}`] = el)}
-                    >
+      {/* Trunk column: partnerships in order (extra partner rows + child rows) */}
+      <div
+        className="relative z-10 flex flex-col gap-4"
+        style={{ paddingLeft: `calc(50% - 80px + ${TRUNK_INDENT}px)` }}
+      >
+        {partnerships.map((p, pIdx) => (
+          <React.Fragment key={pIdx}>
+            {pIdx > 0 && p.partner && (
+              <div
+                ref={(el) => (spouseRefs.current[p.partner.id] = el)}
+                className="w-fit"
+              >
+                <PersonNode
+                  person={p.partner}
+                  showDates={showDates}
+                  onClick={() => onSelect(p.partner.id)}
+                  testId={`spouse-node-${p.partner.id}`}
+                />
+              </div>
+            )}
+            {p.children.map((c) => {
+              const sps = childSpouses[c.id] || [];
+              const firstSp = sps[0];
+              const extras = sps.slice(1);
+              return (
+                <div key={c.id} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4 flex-nowrap w-fit">
+                    <div ref={(el) => (childRefs.current[c.id] = el)}>
                       <PersonNode
-                        person={firstSp}
+                        person={c}
                         showDates={showDates}
-                        onClick={() => onSelect(firstSp.id)}
-                        testId={`child-spouse-node-${firstSp.id}`}
+                        onClick={() => onSelect(c.id)}
+                        testId={`child-node-${c.id}`}
                       />
                     </div>
-                  )}
-                </div>
-                {extras.length > 0 && (
-                  <div
-                    className="flex flex-col gap-2"
-                    style={{ paddingLeft: `${CHILD_EXTRA_SPOUSE_INDENT}px` }}
-                  >
-                    {extras.map((sp) => (
+                    {firstSp && (
                       <div
-                        key={sp.id}
                         ref={(el) =>
-                          (childSpouseRefs.current[`${c.id}:${sp.id}`] = el)
+                          (childSpouseRefs.current[`${c.id}:${firstSp.id}`] = el)
                         }
                       >
                         <PersonNode
-                          person={sp}
+                          person={firstSp}
                           showDates={showDates}
-                          onClick={() => onSelect(sp.id)}
-                          testId={`child-spouse-node-${sp.id}`}
+                          onClick={() => onSelect(firstSp.id)}
+                          testId={`child-spouse-node-${firstSp.id}`}
                         />
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  {extras.length > 0 && (
+                    <div
+                      className="flex flex-col gap-2"
+                      style={{ paddingLeft: `${CHILD_EXTRA_SPOUSE_INDENT}px` }}
+                    >
+                      {extras.map((sp) => (
+                        <div
+                          key={sp.id}
+                          ref={(el) =>
+                            (childSpouseRefs.current[`${c.id}:${sp.id}`] = el)
+                          }
+                        >
+                          <PersonNode
+                            person={sp}
+                            showDates={showDates}
+                            onClick={() => onSelect(sp.id)}
+                            testId={`child-spouse-node-${sp.id}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }

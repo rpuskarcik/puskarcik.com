@@ -310,6 +310,39 @@ async def get_tree(person_id: str, request: Request):
     people_docs = await db.people.find({"id": {"$in": list(all_ids)}}).to_list(2000)
     people_map = {p["id"]: public_person(strip_id(p), is_authed) for p in people_docs}
 
+    # Group children by co-parent to build partnerships.
+    # For each child of focus, find their other parents (excluding focus).
+    child_coparents = {}
+    if child_ids:
+        all_pc = await db.relationships.find(
+            {"kind": "parent_child", "b_id": {"$in": child_ids}}
+        ).to_list(2000)
+        for r in all_pc:
+            if r["a_id"] != person_id:
+                child_coparents.setdefault(r["b_id"], []).append(r["a_id"])
+
+    partnerships = []
+    matched_children = set()
+    for sp_id in spouse_ids:
+        kids = [cid for cid in child_ids if sp_id in child_coparents.get(cid, [])]
+        partnerships.append({
+            "partner": people_map.get(sp_id),
+            "children": [people_map[cid] for cid in kids if cid in people_map],
+        })
+        matched_children.update(kids)
+
+    # Children whose co-parent isn't a recorded spouse of focus (or unknown)
+    unlinked_child_ids = [cid for cid in child_ids if cid not in matched_children]
+    if unlinked_child_ids:
+        partnerships.append({
+            "partner": None,
+            "children": [people_map[cid] for cid in unlinked_child_ids if cid in people_map],
+        })
+
+    # Ensure at least one partnership entry so the frontend has a stable shape.
+    if not partnerships:
+        partnerships.append({"partner": None, "children": []})
+
     return {
         "focus": people_map.get(person_id),
         "parents": [people_map[i] for i in parent_ids if i in people_map],
@@ -317,6 +350,7 @@ async def get_tree(person_id: str, request: Request):
         "children": [people_map[i] for i in child_ids if i in people_map],
         "siblings": [people_map[i] for i in sibling_ids if i in people_map],
         "child_spouses": {cid: [people_map[i] for i in sids if i in people_map] for cid, sids in child_spouse_map.items()},
+        "partnerships": partnerships,
         "is_authed": is_authed,
     }
 
