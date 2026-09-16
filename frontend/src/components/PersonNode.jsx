@@ -26,7 +26,8 @@ export default function PersonNode({
           {symbol}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="font-serif-display text-[15px] font-semibold text-[#1c2024] truncate">
+          {/* New Person */}
+          <div className="font-serif-display text-[14px] leading-tight font-semibold text-[#1c2024] break-words">
             {person.name}
           </div>
           {showDates && (person.birth_date || person.death_date) ? (

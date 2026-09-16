@@ -142,8 +142,8 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   const children = tree.children || [];
   const childSpouses = tree.child_spouses || {};
 
-  // The children column is inset to the right so branches from the spine are visible.
-  const CHILD_INDENT = 64;
+  // The children column is inset slightly to the right of the spine.
+  const CHILD_INDENT = 40;
 
   return (
     <div ref={containerRef} className="relative py-10 px-6" data-testid="family-tree">
@@ -198,13 +198,13 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       {/* Children column (vertical stack, indented from center) */}
       {children.length > 0 && (
         <div
-          className="relative z-10 flex flex-col gap-5"
-          style={{ paddingLeft: `calc(50% + ${CHILD_INDENT / 2}px)` }}
+          className="relative z-10 flex flex-col gap-4"
+          style={{ paddingLeft: `calc(50% - 80px + ${CHILD_INDENT}px)` }}
         >
           {children.map((c) => {
             const sps = childSpouses[c.id] || [];
             return (
-              <div key={c.id} className="flex items-center gap-6 flex-nowrap">
+              <div key={c.id} className="flex items-center gap-4 flex-nowrap">
                 <div ref={(el) => (childRefs.current[c.id] = el)}>
                   <PersonNode
                     person={c}
