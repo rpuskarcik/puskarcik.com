@@ -6,28 +6,34 @@ import PersonNode from "./PersonNode";
  *
  *   Parents row:    [ Father ] ---dashed--- [ Mother ]
  *                                  |
- *   Focus row:      [ FOCUS ] ---dashed--- [ Spouse ]
- *                                  |     (vertical spine)
- *                                  +------[ Child 1 ] ---dashed--- [ Spouse ]
+ *   Focus row:      [ FOCUS ] ---dashed--- [ Spouse 1 ]
+ *                     |
+ *                     +--- [ Spouse 2 ]    (each extra spouse on its own row)
+ *                     |                     joined by a dashed line dropping
+ *                     +--- [ Spouse 3 ]     from the person's center-bottom.
+ *                                  |     (children spine)
+ *                                  +------[ Child 1 ] ---dashed--- [ Spouse 1 ]
+ *                                  |         |
+ *                                  |         +--- [ Spouse 2 ]
  *                                  |
- *                                  +------[ Child 2 ] ---dashed--- [ Spouse ]
- *                                  ...
+ *                                  +------[ Child 2 ] ---dashed--- [ Spouse 1 ]
  *
- * All couples stay on a single horizontal row; children stack vertically.
+ * All spouses beyond the first stack vertically under their partner.
  */
 export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, onLayout }) {
   const containerRef = useRef(null);
   const parentsRefs = useRef({});
   const focusRef = useRef(null);
-  const spouseRefs = useRef({});
+  const focusBlockRef = useRef(null); // wraps focus row + extra spouse rows
+  const spouseRefs = useRef({}); // all focus spouses, keyed by spouse id
   const childRefs = useRef({});
-  const childSpouseRefs = useRef({});
+  const childSpouseRefs = useRef({}); // key: `${childId}:${spouseId}`
   const [lines, setLines] = useState([]);
 
   const computeLines = () => {
     if (!containerRef.current) return;
 
-    // Purge stale DOM references (nodes removed from the tree between renders)
+    // Purge stale DOM references
     [parentsRefs, childRefs, spouseRefs, childSpouseRefs].forEach((mapRef) => {
       Object.keys(mapRef.current).forEach((k) => {
         if (!mapRef.current[k]?.isConnected) delete mapRef.current[k];
@@ -79,61 +85,74 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       newLines.push({ d: `M${focusRect.cx},${midY} L${focusRect.cx},${focusRect.top}`, kind: "parent" });
     }
 
-    // ---------- Focus <-> spouse(s) (dashed) ----------
-    // For multiple spouses, sort focus + spouses left→right and draw a dashed
-    // line between each adjacent pair (edge-to-edge) so lines don't overlap.
-    const focusRowRefs = [
-      { ref: focusRef.current, isFocus: true },
-      ...Object.values(spouseRefs.current).map((el) => ({ ref: el, isFocus: false })),
-    ];
-    const focusRow = focusRowRefs
-      .map(({ ref }) => rect(ref))
-      .filter(Boolean)
-      .sort((a, b) => a.cx - b.cx);
-    for (let i = 0; i < focusRow.length - 1; i++) {
-      const left = focusRow[i];
-      const right = focusRow[i + 1];
-      const y = (left.cy + right.cy) / 2;
-      newLines.push({ d: `M${left.x + left.w},${y} L${right.x},${y}`, kind: "spouse" });
+    // ---------- Focus <-> first spouse (inline, horizontal dashed) ----------
+    const focusSpouses = tree.spouses || [];
+    if (focusSpouses.length > 0) {
+      const firstSpouseId = focusSpouses[0].id;
+      const sr = rect(spouseRefs.current[firstSpouseId]);
+      if (sr) {
+        const y = focusRect.cy;
+        const leftInner = Math.min(focusRect.x + focusRect.w, sr.x + sr.w);
+        const rightInner = Math.max(focusRect.x, sr.x);
+        newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+      }
     }
 
-    // ---------- Children (vertical spine) ----------
+    // ---------- Focus extras: trunk down from focus + 90° branch to each ----------
+    const focusExtras = focusSpouses.slice(1)
+      .map((sp) => rect(spouseRefs.current[sp.id]))
+      .filter(Boolean);
+    if (focusExtras.length > 0) {
+      const trunkX = focusRect.cx;
+      const lastY = Math.max(...focusExtras.map((r) => r.cy));
+      newLines.push({ d: `M${trunkX},${focusRect.bottom} L${trunkX},${lastY}`, kind: "spouse" });
+      focusExtras.forEach((r) => {
+        newLines.push({ d: `M${trunkX},${r.cy} L${r.x},${r.cy}`, kind: "spouse" });
+      });
+    }
+
+    // ---------- Children spine (from bottom of focus block) ----------
+    const focusBlockRect = rect(focusBlockRef.current) || focusRect;
     const childEntries = Object.entries(childRefs.current)
       .map(([id, el]) => ({ id, r: rect(el) }))
       .filter((c) => c.r);
 
     if (childEntries.length > 0) {
-      // Spine origin: below the focus person
       const spineX = focusRect.cx;
-      const spineTop = focusRect.bottom;
+      const spineTop = focusBlockRect.bottom;
       const spineBottom = Math.max(...childEntries.map((c) => c.r.cy));
-      // Vertical spine
       newLines.push({ d: `M${spineX},${spineTop} L${spineX},${spineBottom}`, kind: "parent" });
-      // Horizontal branch to each child (child sits to the right of spine)
       childEntries.forEach((c) => {
         newLines.push({ d: `M${spineX},${c.r.cy} L${c.r.x},${c.r.cy}`, kind: "parent" });
       });
     }
 
-    // ---------- Child <-> child-spouse(s) (dashed) ----------
-    // Group spouse refs by child id, then draw adjacent-pair dashed lines
-    // for [child, spouse1, spouse2, ...] sorted left→right.
-    const childSpouseByChild = {};
-    Object.entries(childSpouseRefs.current).forEach(([key, el]) => {
-      const [childId] = key.split(":");
-      (childSpouseByChild[childId] ||= []).push(el);
-    });
-    Object.entries(childSpouseByChild).forEach(([childId, els]) => {
-      const childEl = childRefs.current[childId];
-      const rowRects = [childEl, ...els]
-        .map(rect)
-        .filter(Boolean)
-        .sort((a, b) => a.cx - b.cx);
-      for (let i = 0; i < rowRects.length - 1; i++) {
-        const left = rowRects[i];
-        const right = rowRects[i + 1];
-        const y = (left.cy + right.cy) / 2;
-        newLines.push({ d: `M${left.x + left.w},${y} L${right.x},${y}`, kind: "spouse" });
+    // ---------- Per-child: first spouse inline + extras stacked ----------
+    (tree.children || []).forEach((c) => {
+      const cr = rect(childRefs.current[c.id]);
+      if (!cr) return;
+      const sps = (tree.child_spouses || {})[c.id] || [];
+      // Inline (first) spouse: horizontal dashed
+      if (sps.length > 0) {
+        const firstSr = rect(childSpouseRefs.current[`${c.id}:${sps[0].id}`]);
+        if (firstSr) {
+          const y = cr.cy;
+          const leftInner = Math.min(cr.x + cr.w, firstSr.x + firstSr.w);
+          const rightInner = Math.max(cr.x, firstSr.x);
+          newLines.push({ d: `M${leftInner},${y} L${rightInner},${y}`, kind: "spouse" });
+        }
+      }
+      // Extras: trunk from child bottom + 90° branch to each
+      const extras = sps.slice(1)
+        .map((sp) => rect(childSpouseRefs.current[`${c.id}:${sp.id}`]))
+        .filter(Boolean);
+      if (extras.length > 0) {
+        const trunkX = cr.cx;
+        const lastY = Math.max(...extras.map((r) => r.cy));
+        newLines.push({ d: `M${trunkX},${cr.bottom} L${trunkX},${lastY}`, kind: "spouse" });
+        extras.forEach((r) => {
+          newLines.push({ d: `M${trunkX},${r.cy} L${r.x},${r.cy}`, kind: "spouse" });
+        });
       }
     });
 
@@ -158,8 +177,11 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   const children = tree.children || [];
   const childSpouses = tree.child_spouses || {};
 
-  // The children column is inset slightly to the right of the spine.
+  const firstSpouse = spouses[0];
+  const extraSpouses = spouses.slice(1);
+
   const CHILD_INDENT = 40;
+  const EXTRA_SPOUSE_INDENT = 40; // indent for extras relative to their partner
 
   return (
     <div ref={containerRef} className="relative py-10 px-6" data-testid="family-tree">
@@ -188,30 +210,52 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
         </div>
       )}
 
-      {/* Focus + spouse row */}
-      <div className="relative z-10 flex justify-center items-center gap-14 mb-12 flex-wrap">
-        <div ref={focusRef}>
-          <PersonNode
-            person={tree.focus}
-            focused
-            showDates={showDates}
-            onClick={() => onFocusClick(tree.focus)}
-            testId={`focus-node-${tree.focus.id}`}
-          />
-        </div>
-        {spouses.map((s) => (
-          <div key={s.id} ref={(el) => (spouseRefs.current[s.id] = el)}>
+      {/* Focus block: focus row + any extra spouse rows */}
+      <div ref={focusBlockRef} className="relative z-10 mb-12">
+        <div className="flex justify-center items-center gap-14 flex-nowrap">
+          <div ref={focusRef}>
             <PersonNode
-              person={s}
+              person={tree.focus}
+              focused
               showDates={showDates}
-              onClick={() => onSelect(s.id)}
-              testId={`spouse-node-${s.id}`}
+              onClick={() => onFocusClick(tree.focus)}
+              testId={`focus-node-${tree.focus.id}`}
             />
           </div>
-        ))}
+          {firstSpouse && (
+            <div ref={(el) => (spouseRefs.current[firstSpouse.id] = el)}>
+              <PersonNode
+                person={firstSpouse}
+                showDates={showDates}
+                onClick={() => onSelect(firstSpouse.id)}
+                testId={`spouse-node-${firstSpouse.id}`}
+              />
+            </div>
+          )}
+        </div>
+        {extraSpouses.length > 0 && (
+          <div className="flex flex-col gap-3 mt-3">
+            {extraSpouses.map((sp) => (
+              <div
+                key={sp.id}
+                className="flex"
+                style={{ paddingLeft: `calc(50% + ${EXTRA_SPOUSE_INDENT}px)` }}
+              >
+                <div ref={(el) => (spouseRefs.current[sp.id] = el)}>
+                  <PersonNode
+                    person={sp}
+                    showDates={showDates}
+                    onClick={() => onSelect(sp.id)}
+                    testId={`spouse-node-${sp.id}`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Children column (vertical stack, indented from center) */}
+      {/* Children column: each child block = child row + its extras */}
       {children.length > 0 && (
         <div
           className="relative z-10 flex flex-col gap-4"
@@ -219,29 +263,54 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
         >
           {children.map((c) => {
             const sps = childSpouses[c.id] || [];
+            const firstSp = sps[0];
+            const extras = sps.slice(1);
             return (
-              <div key={c.id} className="flex items-center gap-4 flex-nowrap">
-                <div ref={(el) => (childRefs.current[c.id] = el)}>
-                  <PersonNode
-                    person={c}
-                    showDates={showDates}
-                    onClick={() => onSelect(c.id)}
-                    testId={`child-node-${c.id}`}
-                  />
-                </div>
-                {sps.map((sp) => (
-                  <div
-                    key={sp.id}
-                    ref={(el) => (childSpouseRefs.current[`${c.id}:${sp.id}`] = el)}
-                  >
+              <div key={c.id} className="flex flex-col gap-2">
+                <div className="flex items-center gap-4 flex-nowrap">
+                  <div ref={(el) => (childRefs.current[c.id] = el)}>
                     <PersonNode
-                      person={sp}
+                      person={c}
                       showDates={showDates}
-                      onClick={() => onSelect(sp.id)}
-                      testId={`child-spouse-node-${sp.id}`}
+                      onClick={() => onSelect(c.id)}
+                      testId={`child-node-${c.id}`}
                     />
                   </div>
-                ))}
+                  {firstSp && (
+                    <div
+                      ref={(el) => (childSpouseRefs.current[`${c.id}:${firstSp.id}`] = el)}
+                    >
+                      <PersonNode
+                        person={firstSp}
+                        showDates={showDates}
+                        onClick={() => onSelect(firstSp.id)}
+                        testId={`child-spouse-node-${firstSp.id}`}
+                      />
+                    </div>
+                  )}
+                </div>
+                {extras.length > 0 && (
+                  <div
+                    className="flex flex-col gap-2"
+                    style={{ paddingLeft: `${EXTRA_SPOUSE_INDENT}px` }}
+                  >
+                    {extras.map((sp) => (
+                      <div
+                        key={sp.id}
+                        ref={(el) =>
+                          (childSpouseRefs.current[`${c.id}:${sp.id}`] = el)
+                        }
+                      >
+                        <PersonNode
+                          person={sp}
+                          showDates={showDates}
+                          onClick={() => onSelect(sp.id)}
+                          testId={`child-spouse-node-${sp.id}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
