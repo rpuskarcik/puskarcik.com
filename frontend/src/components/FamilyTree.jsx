@@ -181,7 +181,8 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   const extraSpouses = spouses.slice(1);
 
   const CHILD_INDENT = 40;
-  const EXTRA_SPOUSE_INDENT = 40; // indent for extras relative to their partner
+  const EXTRA_SPOUSE_INDENT = 40; // focus-row extras (relative to horizontal center)
+  const CHILD_EXTRA_SPOUSE_INDENT = 160; // child-row extras (relative to child block left)
 
   return (
     <div ref={containerRef} className="relative py-10 px-6" data-testid="family-tree">
@@ -292,7 +293,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
                 {extras.length > 0 && (
                   <div
                     className="flex flex-col gap-2"
-                    style={{ paddingLeft: `${EXTRA_SPOUSE_INDENT}px` }}
+                    style={{ paddingLeft: `${CHILD_EXTRA_SPOUSE_INDENT}px` }}
                   >
                     {extras.map((sp) => (
                       <div
