@@ -1,0 +1,35 @@
+{
+  "summary": "First-finish smoke tests for Puskarcik Family Tree. Backend endpoints (people, tree root/focus with auth-gated dates, register, login, /auth/me, changes create, admin approve/reject, admin-only guard) all pass. Frontend renders family tree with Ludwig+Aniela and children, SVG connectors visible, guest hover shows no date tooltip, clicking a child navigates to /tree/{id} and shows parents above, Root and Back buttons work, admin login reveals dates on hover and opens person detail modal on focus click, /admin panel accessible only to admin (guest redirected to /), logout clears auth. Contributor submission -> admin approve pipeline verified end-to-end (new person appears in /api/people).",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "GET /api/people returns 17 people with only id/name/gender (no birth_date)",
+    "GET /api/tree/root/default returns Ludwig's ID (key is `person_id`)",
+    "GET /api/tree/{id} as guest omits birth_date/death_date; returns focus/parents/spouses/children/siblings/child_spouses (8 children, 1 spouse, 7 child_spouses)",
+    "GET /api/tree/{id} authed as admin includes birth_date/death_date on focus person",
+    "POST /api/auth/register creates contributor and returns token",
+    "POST /api/auth/login admin creds returns role=admin + token",
+    "GET /api/auth/me with Bearer returns authenticated=true, role=admin",
+    "POST /api/changes as contributor creates pending change (id + status:pending)",
+    "GET /api/admin/changes as admin lists the pending change",
+    "POST /api/admin/changes/{id}/approve applies add_person; new person visible in /api/people",
+    "POST /api/admin/changes/{id}/reject returns ok=true without adding person",
+    "GET /api/admin/changes as contributor returns 403 Admin only",
+    "Homepage renders family-tree with focus + 8-9 child nodes, spouse node, 5 SVG connector layers",
+    "Guest hover on person node shows NO tooltip/date content",
+    "Clicking child-node navigates to /tree/{id}, tree re-centers, 2 parent nodes appear above",
+    "tree-home-btn returns to '/' (Ludwig root)",
+    "Login flow via login-form works; admin-panel-btn and logout-btn appear post-login",
+    "Authed hover reveals Birth/Death/date content in tooltip",
+    "Clicking focus-node while authed opens person-detail-modal with modal-close-btn",
+    "/admin route as admin shows Pending/Approved/Rejected tabs (curator panel)",
+    "Logout clears session; guest visiting /admin is redirected to /"
+  ],
+  "failed": [],
+  "action_items": [
+    "Minor: modal-back-btn is not rendered when opening the modal directly from a tree page (no prior modal history). If spec requires it to always be present, revisit; otherwise this is expected behavior.",
+    "Minor: harmless React a11y warning 'Missing Description or aria-describedby for DialogContent' in console (person detail modal). Non-blocking."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}

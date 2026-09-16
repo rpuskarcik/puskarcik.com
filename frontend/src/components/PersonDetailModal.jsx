@@ -1,5 +1,5 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, X } from "lucide-react";
 
@@ -55,6 +55,9 @@ export default function PersonDetailModal({ open, person, onClose, onBack, canGo
               </div>
             </div>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Detailed record for {person.name}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
