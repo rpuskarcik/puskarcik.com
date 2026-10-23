@@ -1,0 +1,39 @@
+PUSKARCIK.COM - INSTALLING THE NEW FAMILY TREE (cPanel File Manager)
+=====================================================================
+
+The kit has 3 files:
+  index.html      - your home page, with the same header and photo, and the new tree in place of the old hand-coded one
+  people.js       - your family data (names, genders, dates, parents, marriages)
+  family-tree.js  - the tree program (do not edit)
+
+STEP 1 - Back up your current page
+  1. Log in to cPanel and open "File Manager".
+  2. Open "public_html". This is the folder with index.html and the "images" folder.
+  3. Right-click index.html, choose "Rename", and name it index-old.html.
+     (To undo everything later, delete the new index.html and rename this file back.)
+
+STEP 2 - Upload the 3 files
+  1. Still inside public_html, click "Upload" in the top toolbar.
+  2. Choose index.html, people.js and family-tree.js from the kit and wait for each bar to turn green.
+  3. Click "Go Back to ..." to return to the folder. All 3 files should sit next to the "images" folder.
+
+STEP 3 - Check it
+  1. Open https://puskarcik.com in your browser. If you see the old tree, press Ctrl+F5 (Cmd+Shift+R on a Mac).
+  2. Hover over a name to see the dates. Click a name to move that person to the top.
+     Click the top person to open their details. Chester, Carl and Thaddeus have a "Read more" link to their existing pages.
+
+UPDATING THE FAMILY LATER
+  1. In File Manager, right-click people.js and choose "Edit".
+  2. To add a person, copy one { ... } block, paste it after another block (keep the commas between blocks), and change the values:
+       "id"       a short unique word, e.g. "mary-sertich"
+       "name"     full name
+       "gender"   "M", "F" or "O"
+       "birth_date" / "death_date"   any text, e.g. "3 Jan 1950"
+       "parents"  ids of the parents, e.g. ["stasia", "george-sertich"]
+       "spouses"  e.g. [{ "id": "john-doe", "wed_date": "1972" }]
+  3. Click "Save Changes" and reload the website.
+  If the tree disappears after an edit, there is usually a missing comma or quote. Undo your last change and save again.
+
+NOTES
+  - Your old pages (chester, carl, thaddeus) are untouched.
+  - Keep the old index-old.html as a backup. Visitors won't see it unless they type its name.

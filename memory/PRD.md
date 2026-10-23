@@ -36,7 +36,14 @@ A family tree graphic with rounded rectangles and arrows showing the flow (start
 - Example page: `/embed/example.html`. Rebuild with `yarn build:embed` (`scripts/build-embed.js`, esbuild + Tailwind)
 - Fixes: marriage hover zones no longer block clicks on cards, the resize handler no longer uses stale data, and the lines re-measure after fonts load (ResizeObserver)
 
+## Implemented (Jun 2026) — puskarcik.com install kit
+- `/embed/puskarcik-kit.zip` (also unzipped at `/embed/puskarcik-kit/`) contains `index.html`, `people.js`, `family-tree.js` and `INSTALL.txt`
+- `index.html` is the user's live page with the same header and photo; the old `.node` tree, the global `svg {}` CSS and the resize script were replaced by `FamilyTree.render`
+- `people.js` uses the REAL dates from puskarcik.com, which differ from the placeholder dates in the app DB. Chester, Carl and Thaddeus have `link` fields, shown in the detail window as "Read more →"
+- On narrow screens the focus row uses `safe center`, so the top card is no longer clipped
+
 ## Backlog (P1/P2)
+- Sync the app DB with the real dates from puskarcik.com
 - Pencil edit affordance on hover of any node
 - Undo recent delete (admin), CSV/GEDCOM import, grandchildren peek
 - Email notification to admin on new submission (currently in-app only)

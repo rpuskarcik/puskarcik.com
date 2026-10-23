@@ -293,7 +293,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       )}
 
       {/* Focus row: focus + first partner (inline) */}
-      <div className="relative z-10 flex justify-center items-center gap-14 mb-8 flex-nowrap">
+      <div className="relative z-10 flex justify-center items-center gap-14 mb-8 flex-nowrap" style={{ justifyContent: "safe center" }}>
         <div ref={focusRef}>
           <PersonNode
             person={tree.focus}

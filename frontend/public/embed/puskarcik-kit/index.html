@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puskarcik Family Tree</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pirata+One&amp;family=Rye&amp;display=swap" rel="stylesheet">
+  <style>
+	body{
+	background-color: #FAF4E6;
+	}
+  
+	.header-container {
+	  width: 80%;
+	  margin: auto;
+	  font-family: "Pirata One", system-ui;
+	  font-size: 120%;
+	}
+	
+	.header-container img{
+	  max-width: 100%;
+	  border: 1px solid brown;
+      border-radius: 10px;
+	}
+
+    #tree {
+      width: 80%;
+      margin: auto;
+      background: #fffdf8;
+      border: 1px solid brown;
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-container">
+  <h1><span style="font-family: 'Rye';">P</span>uskarcik <span style="font-family: 'Rye';">F</span>amily <span style="font-family: 'Rye';">T</span>ree</h1>
+	<img src="images/familyphoto.jpg">
+  </div>
+	<p>&nbsp;</p>
+
+  <!-- Family tree: drawn by family-tree.js from the data in people.js -->
+  <div id="tree"></div>
+
+  <script src="people.js"></script>
+  <script src="family-tree.js"></script>
+  <script>
+    FamilyTree.render("#tree", people, { showDates: true });
+  </script>
+</body>
+</html>

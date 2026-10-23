@@ -40,6 +40,15 @@ export default function DetailWindow({ person, onClose }) {
           ))}
         </dl>
         {person.bio && <p className="mt-4 text-sm text-[#4a5157] leading-relaxed">{person.bio}</p>}
+        {person.link && (
+          <a
+            href={person.link}
+            className="inline-block mt-5 text-sm font-semibold text-[#9e472a] hover:underline"
+            data-testid="ft-detail-link"
+          >
+            Read more →
+          </a>
+        )}
       </div>
     </div>
   );

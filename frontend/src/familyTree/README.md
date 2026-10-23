@@ -30,6 +30,7 @@ One object per person. Only `id` and `name` are required.
 | `gender` | `"M"` \| `"F"` \| `"O"` | Sets the ♂ / ♀ / • badge (defaults to •) |
 | `birth_date`, `death_date` | string | Free text ("c. 1870"). Shown on hover when `showDates` is on |
 | `birth_place`, `death_place`, `bio` | string | Shown in the built-in detail window |
+| `link` | string | Optional URL; the built-in detail window shows a "Read more →" link to it |
 | `parents` | string[] | Ids of this person's parents (0–2) |
 | `spouses` | `{ id, wed_date?, end_date? }[]` or string[] | Marriages, in order. You only need to list a marriage on **one** of the two people. The wedding date appears when you hover over the dashed line (`"1942 – 1968"` if `end_date` is set) |
 
