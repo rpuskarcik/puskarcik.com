@@ -20,7 +20,7 @@ execFileSync(
 const css = [
   fs.readFileSync(path.join(ftDir, "embed/fonts.css"), "utf8"),
   fs.readFileSync(twOut, "utf8"),
-  fs.readFileSync(path.join(ftDir, "familyTree.css"), "utf8"),
+  fs.readFileSync(path.join(ftDir, "familyTree.css"), "utf8").replace(/^\.(?=[\w-])/gm, ".ft-root ."),
 ].join("\n");
 
 esbuild
@@ -33,7 +33,8 @@ esbuild
     globalName: "FamilyTree",
     jsx: "automatic",
     loader: { ".js": "jsx", ".css": "empty" },
-    define: { "process.env.NODE_ENV": '"production"', __FT_CSS__: JSON.stringify(css) },
+    define: { "process.env.NODE_ENV": '"production"', "process.env.FT_EMBED_CSS": JSON.stringify(css) },
+    banner: { js: "/* eslint-disable */" },
     target: ["es2018"],
     legalComments: "none",
   })

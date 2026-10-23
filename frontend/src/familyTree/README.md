@@ -68,6 +68,22 @@ Container element: it should be a block element in the page. Give it `overflow-x
 | `familyTree.css` | Styles |
 | `sampleData.js` | Example input |
 
+## Plain HTML embed (no React needed)
+
+`public/embed/family-tree.js` is a single self-contained file (~200 KB). It includes React and all the styles. It only styles elements inside the tree, and it loads the fonts from Google Fonts.
+
+```html
+<div id="tree" style="overflow-x:auto"></div>
+<script src="family-tree.js"></script>
+<script>
+  var tree = FamilyTree.render("#tree", people, { showDates: true });
+  // same handle as above: tree.setFocus(id), tree.update(people), tree.destroy()
+</script>
+```
+
+- Live example: `/embed/example.html`. View the page source for a complete working page.
+- To rebuild after changing anything in `src/familyTree/`, run `yarn build:embed` (script: `scripts/build-embed.js`).
+
 ## Hooking it to a database
 
 Any backend works. Return the array in the format above. In this app, `GET /api/tree-data` returns `{ root_id, people }` built from MongoDB, and `pages/TreePage.jsx` passes `people` to `renderFamilyTree`.

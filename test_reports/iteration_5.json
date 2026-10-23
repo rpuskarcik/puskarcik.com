@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend-only test of the plain-HTML embed (/embed/example.html + /embed/family-tree.js) and a regression of the React app. Embed: loads without React (#root absent), window.FamilyTree exposes render/buildTree/version, the tree renders Ludwig + Aniela + 9 children (the example data has 9 children of Ludwig incl. Test Person, not 10). Clicking at the centre of cards re-centers for children, child spouses (Vera, Anna First, extra-row Maria Second), parents and focus spouses, and onSelect fires each time. Test Person view: Anna First inline, Maria Second on a dashed trunk row, Adam/Bertram/Cecilia. Wed tooltips 'm. 1942'/'m. 1956' show both in the root view and the Test Person view, and none on Ludwig-Aniela (no date). Clicking the left edge of the Anna card inside the gap row still navigates, so the hover zone does not block clicks. ft-detail-window opens on focus click and ft-detail-close closes it. Resizing 1920->768->390 after navigating to Test Person keeps every connector aligned. Host styles are untouched (h1/body Georgia serif, body bg rgb(244,241,234), p/h1 margins intact). The render() errors are clear: 'container not found (#nope)' and 'people must be an array' for {} and null. React app regression all passed: /, /tree/<id>, Back/Root, marriage tooltip, /demo + ft-detail-window, admin login -> person-tooltip dates '1895 — 1970', PersonDetailModal with back/close, and no setState warning (previous fix confirmed). Found 1 real embed bug: connectors are drawn with the stale layout when the web fonts load after first paint.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "FamilyTreeView in embed (family-tree.js)", "issue": "On a cold load the connector lines are computed before the Google Fonts (Fraunces/Manrope) finish loading and are never recomputed. Name wrapping changes, the cards shift down and the lines end up about one row off: the trunk stops at Thaddeus, Test Person is not connected, and the marriage dashes sit between rows. Reproduced deterministically by delaying fonts.googleapis/gstatic by 2.5s: Test Person cy goes 695->748 while the trunk stays at L..,695.75 even 6s later. It only fixes itself after a window resize. It hit the very first test run with no throttling (first visit on a host site). The React app is less affected because its fonts are already loaded by the page. Fix: in FamilyTreeView add `document.fonts?.ready.then(() => computeRef.current())` and/or a ResizeObserver on containerRef that calls computeRef.current() (disconnect on unmount), then rebuild with `yarn build:embed`.", "selector": "#tree [data-testid='family-tree'] svg path", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Embed CSS", "issues": ["familyTree.css injects global unscoped class names (.node-card, .tree-line, .gender-badge, .gender-M/F/O). A host page that uses the same names would collide both ways. Prefix them with .ft-root (the Tailwind utilities are already scoped via important:'.ft-root')."]},
+      {"screen": "Embed ft-detail-window", "issues": ["For a person with no dates or bio (e.g. Test Person) the window shows only the name and 'Close', which looks empty. Consider a fallback line such as 'No further details'."]},
+      {"screen": "React app 390px", "issues": ["The child spouse cards (Vera, Michael...) overflow the canvas and get clipped on the right, so the user has to scroll the canvas sideways. Acceptable, but there is no visual hint that it scrolls."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Recompute connector lines after web fonts load / on container size change (document.fonts.ready + ResizeObserver) in FamilyTreeView.jsx, then run `cd /app/frontend && yarn build:embed`",
+    "Scope the familyTree.css class selectors under .ft-root in the embed bundle so they cannot collide with host pages"
+  ],
+  "critical_code_review_comments": [
+    "FamilyTreeView: layout-dependent lines only recompute on [tree, extraPartnerX] and window resize. Late font loads, container width changes (host sidebars, tabs, display:none -> visible containers) and image loads leave stale lines. A ResizeObserver solves all of these.",
+    "renderFamilyTree.destroy() defers unmount with setTimeout but returns nothing, so callers cannot await it. Calling render() twice on the same container appends a second .ft-root (no guard or replace).",
+    "entry.js injectStyles is guarded by id, good. The fonts.css @import of Google Fonts makes the embed depend on an external network request; document this for hosts with a strict CSP."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "95%"},
+  "seed_data_creation": "None",
+  "test_credentials": "admin@puskarcik.com / admin123 (from /app/memory/test_credentials.md) - works",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Embed: /embed/example.html uses inline data; check line alignment by comparing each card's centre y with the path endpoints, and reproduce the font race with page.route on fonts.googleapis/gstatic delaying 2.5s. Ids: Ludwig e9a877db..., Test Person dc6dbf0a..., Anna f7a5ae62..., Maria dbe7d63b..., Chester 1e1792f7.... The family-tree.js build artifact was newer than its sources at test time.",
+  "rca of the issue": "computeLines() runs in useLayoutEffect at first paint while the fallback fonts are active. When Fraunces/Manrope arrive, the text metrics change (names wrap differently), so the card heights and y positions shift. Nothing triggers a recompute (no ResizeObserver or fonts listener), so the SVG paths stay at the old coordinates until a window resize event."
+}

@@ -205,7 +205,14 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
   useEffect(() => {
     const onResize = () => computeRef.current();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    // Re-measure when card sizes change (e.g. web fonts finishing loading).
+    const ro = new ResizeObserver(onResize);
+    if (containerRef.current) ro.observe(containerRef.current);
+    document.fonts?.ready.then(onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ro.disconnect();
+    };
   }, []);
 
   if (!tree || !tree.focus) return null;

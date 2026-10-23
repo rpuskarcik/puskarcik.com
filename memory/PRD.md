@@ -31,6 +31,11 @@ A family tree graphic with rounded rectangles and arrows showing the flow (start
 - `GET /api/tree-data` returns `{root_id, people[]}` in the renderer format. TreePage uses it, and `/demo` renders from static data
 - Supports marriage `end_date` (label "1942 – 1968")
 
+## Implemented (Jun 2026) — Plain HTML embed
+- `public/embed/family-tree.js` is a single ~200 KB script that bundles React and the styles (scoped to `.ft-root`). Call it with `FamilyTree.render(el|selector, peopleArray, options)`
+- Example page: `/embed/example.html`. Rebuild with `yarn build:embed` (`scripts/build-embed.js`, esbuild + Tailwind)
+- Fixes: marriage hover zones no longer block clicks on cards, the resize handler no longer uses stale data, and the lines re-measure after fonts load (ResizeObserver)
+
 ## Backlog (P1/P2)
 - Pencil edit affordance on hover of any node
 - Undo recent delete (admin), CSV/GEDCOM import, grandchildren peek

@@ -1,4 +1,3 @@
-/* global __FT_CSS__ */
 import { renderFamilyTree } from "../renderFamilyTree";
 import { buildTree } from "../buildTree";
 
@@ -6,7 +5,7 @@ const injectStyles = () => {
   if (document.getElementById("ft-embed-styles")) return;
   const style = document.createElement("style");
   style.id = "ft-embed-styles";
-  style.textContent = __FT_CSS__;
+  style.textContent = process.env.FT_EMBED_CSS;
   document.head.appendChild(style);
 };
 
