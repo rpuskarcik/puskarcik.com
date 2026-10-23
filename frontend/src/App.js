@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import TreePage from "@/pages/TreePage";
+import DemoPage from "./pages/DemoPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ContributePage from "@/pages/ContributePage";
@@ -23,6 +24,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/contribute" element={<ContributePage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/demo" element={<DemoPage />} />
           </Routes>
           <Toaster
             position="top-right"

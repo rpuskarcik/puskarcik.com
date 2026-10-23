@@ -380,6 +380,29 @@ async def get_tree(person_id: str, request: Request):
     }
 
 
+@api.get("/tree-data")
+async def get_tree_data(request: Request):
+    """Whole tree as a flat array in the renderFamilyTree() input format."""
+    is_authed = bool(await get_current_user_optional(request))
+    people = await db.people.find({}, {"_id": 0}).to_list(5000)
+    rels = await db.relationships.find({}, {"_id": 0}).to_list(20000)
+    parents, spouses = {}, {}
+    for r in rels:
+        if r["kind"] == "parent_child":
+            parents.setdefault(r["b_id"], []).append(r["a_id"])
+        elif r["kind"] == "spouse":
+            info = {"id": r["b_id"], **{k: r[k] for k in ("wed_date", "end_date") if r.get(k)}}
+            spouses.setdefault(r["a_id"], []).append(info)
+    out = []
+    for p in people:
+        rec = full_person(p) if is_authed else public_person(p, False)
+        rec["parents"] = parents.get(p["id"], [])
+        rec["spouses"] = spouses.get(p["id"], [])
+        out.append(rec)
+    root_doc = await db.meta.find_one({"key": "root_person_id"})
+    return {"root_id": root_doc["value"] if root_doc else None, "people": out}
+
+
 @api.get("/tree/root/default")
 async def get_default_root(request: Request):
     """Return the root person (earliest ancestor) - one with no parent relationship."""

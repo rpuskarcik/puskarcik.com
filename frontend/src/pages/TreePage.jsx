@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import FamilyTree from "@/components/FamilyTree";
+import { renderFamilyTree } from "@/familyTree";
 import PersonDetailModal from "@/components/PersonDetailModal";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Home } from "lucide-react";
@@ -12,40 +12,31 @@ export default function TreePage() {
   const { personId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tree, setTree] = useState(null);
+  const [data, setData] = useState(null);
   const [history, setHistory] = useState([]); // stack of previous focus ids
   const [modalPerson, setModalPerson] = useState(null);
   const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);
-
-  const loadTree = useCallback(
-    async (id) => {
-      setLoading(true);
-      try {
-        let targetId = id;
-        if (!targetId) {
-          const { data } = await api.get("/tree/root/default");
-          targetId = data.person_id;
-        }
-        const { data } = await api.get(`/tree/${targetId}`);
-        setTree(data);
-      } catch (e) {
-        toast.error("Could not load tree");
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const treeRef = useRef(null);
+  const focusId = personId || data?.root_id || data?.people?.[0]?.id;
+  const focusPerson = data?.people?.find((p) => p.id === focusId);
+  const focusIdRef = useRef(focusId);
+  focusIdRef.current = focusId;
 
   useEffect(() => {
-    loadTree(personId);
-  }, [personId, loadTree]);
+    setLoading(true);
+    api
+      .get("/tree-data")
+      .then(({ data }) => setData(data))
+      .catch((e) => {
+        toast.error("Could not load tree");
+        console.error(e);
+      })
+      .finally(() => setLoading(false));
+  }, [user]);
 
   const handleSelect = (newId) => {
-    if (!tree?.focus) return;
-    setHistory((h) => [...h, tree.focus.id]);
+    setHistory((h) => [...h, focusIdRef.current]);
     navigate(`/tree/${newId}`);
   };
 
@@ -58,6 +49,28 @@ export default function TreePage() {
       setModalPerson(person);
     }
   };
+
+  const handlersRef = useRef({});
+  handlersRef.current = { handleSelect, handleFocusClick };
+
+  useEffect(() => {
+    if (!data?.people?.length || !canvasRef.current) return;
+    const handle = renderFamilyTree(canvasRef.current, data.people, {
+      focusId: focusIdRef.current,
+      showDates: !!user,
+      onSelect: (id) => handlersRef.current.handleSelect(id),
+      onFocusClick: (p) => handlersRef.current.handleFocusClick(p),
+    });
+    treeRef.current = handle;
+    return () => {
+      treeRef.current = null;
+      handle.destroy();
+    };
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    treeRef.current?.setFocus(focusId);
+  }, [focusId]);
 
   const handleModalBack = () => {
     setModalPerson(null);
@@ -120,49 +133,27 @@ export default function TreePage() {
               <ChevronLeft className="w-4 h-4 mr-1" /> Back
             </Button>
           </div>
-          {tree?.focus && (
+          {focusPerson && (
             <div className="text-xs font-mono text-[#687076] tracking-tight">
-              Viewing: <span className="text-[#1c2024]">{tree.focus.name}</span>
+              Viewing: <span className="text-[#1c2024]">{focusPerson.name}</span>
             </div>
           )}
         </div>
 
         {/* Tree canvas */}
+        {loading && !data && (
+          <div className="py-24 text-center text-[#687076] font-mono text-sm rounded-2xl bg-[#fffdf8] border border-[#e2dacd]">
+            Loading tree…
+          </div>
+        )}
+        {!loading && !data?.people?.length && (
+          <div className="py-24 text-center text-[#687076] text-sm rounded-2xl bg-[#fffdf8] border border-[#e2dacd]">No data yet.</div>
+        )}
         <div
           ref={canvasRef}
-          className="rounded-2xl bg-[#fffdf8] border border-[#e2dacd] shadow-sm overflow-x-auto"
+          className={`rounded-2xl bg-[#fffdf8] border border-[#e2dacd] shadow-sm overflow-x-auto ${data?.people?.length ? "" : "hidden"}`}
           data-testid="tree-canvas"
-        >
-          {loading && (
-            <div className="py-24 text-center text-[#687076] font-mono text-sm">
-              Loading tree…
-            </div>
-          )}
-          {!loading && tree && (
-            <FamilyTree
-              tree={tree}
-              showDates={!!user}
-              onSelect={handleSelect}
-              onFocusClick={handleFocusClick}
-              onLayout={() => {
-                const container = canvasRef.current;
-                if (!container) return;
-                const focusEl = container.querySelector(
-                  `[data-testid="focus-node-${tree.focus?.id}"]`
-                );
-                if (!focusEl) return;
-                const cRect = container.getBoundingClientRect();
-                const fRect = focusEl.getBoundingClientRect();
-                const target =
-                  container.scrollLeft + (fRect.left - cRect.left) - cRect.width / 2 + fRect.width / 2;
-                container.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
-              }}
-            />
-          )}
-          {!loading && !tree && (
-            <div className="py-24 text-center text-[#687076] text-sm">No data yet.</div>
-          )}
-        </div>
+        />
 
         {/* Legend */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12px] text-[#687076] font-mono">
