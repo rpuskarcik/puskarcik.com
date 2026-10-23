@@ -34,6 +34,17 @@ UPDATING THE FAMILY LATER
   3. Click "Save Changes" and reload the website.
   If the tree disappears after an edit, there is usually a missing comma or quote. Undo your last change and save again.
 
+ADDING WEDDING DATES
+  Every couple already has an empty slot in people.js, inside the husband's "spouses" entry
+  (for Ludwig & Aniela, it's inside Ludwig's entry):
+       "spouses": [ { "id": "vera", "wed_date": "", "end_date": "" } ]
+  1. In File Manager, right-click people.js and choose "Edit".
+  2. Find the couple (search with Ctrl+F for the spouse's id, e.g. "vera"). Type the year between the quotes:
+       "wed_date": "1932"
+     If the marriage ended (divorce or death), also fill "end_date": "1960". Visitors then see "m. 1932 – 1960".
+  3. Click "Save Changes" and reload the site. Hover over the dashed line between the couple to see the date.
+  Leave a date as "" if you don't know it. Nothing is shown for that couple.
+
 NOTES
   - Your old pages (chester, carl, thaddeus) are untouched.
   - Keep the old index-old.html as a backup. Visitors won't see it unless they type its name.

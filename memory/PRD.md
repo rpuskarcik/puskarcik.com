@@ -42,6 +42,10 @@ A family tree graphic with rounded rectangles and arrows showing the flow (start
 - `people.js` uses the REAL dates from puskarcik.com, which differ from the placeholder dates in the app DB. Chester, Carl and Thaddeus have `link` fields, shown in the detail window as "Read more →"
 - On narrow screens the focus row uses `safe center`, so the top card is no longer clipped
 
+## Implemented (Jun 2026) — Wedding date slots (kit only)
+- The user gave no dates. Each of the 8 couples in the kit's `people.js` has an empty `"wed_date": ""` / `"end_date": ""` slot. An empty slot means no tooltip
+- `INSTALL.txt` now has an "ADDING WEDDING DATES" section, and the zip was rebuilt. The app DB is unchanged, as the user chose
+
 ## Backlog (P1/P2)
 - Sync the app DB with the real dates from puskarcik.com
 - Pencil edit affordance on hover of any node

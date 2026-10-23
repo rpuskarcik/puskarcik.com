@@ -1,6 +1,8 @@
 // Puskarcik family data for family-tree.js.
-// One entry per person. "parents" lists parent ids; "spouses" lists marriages
-// (add "wed_date" / "end_date" inside a spouse entry to show marriage dates on hover).
+// One entry per person. "parents" lists parent ids; "spouses" lists marriages.
+// Marriage dates: type a year or date into "wed_date" (e.g. "1932" or "12 Jun 1932").
+// It appears when visitors hover over the dashed line. Fill "end_date" only if the marriage ended
+// (shown as "1932 – 1960"). Leave both as "" if unknown; nothing is shown then.
 // To add someone: copy an entry, give it a new unique id, and reference that id from relatives.
 var people = [
   {
@@ -14,7 +16,9 @@ var people = [
     "parents": [],
     "spouses": [
       {
-        "id": "aniela"
+        "id": "aniela",
+        "wed_date": "",
+        "end_date": ""
       }
     ]
   },
@@ -41,7 +45,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "vera"
+        "id": "vera",
+        "wed_date": "",
+        "end_date": ""
       }
     ],
     "link": "chester"
@@ -65,7 +71,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "michael-cvengros"
+        "id": "michael-cvengros",
+        "wed_date": "",
+        "end_date": ""
       }
     ]
   },
@@ -90,7 +98,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "philip-houser"
+        "id": "philip-houser",
+        "wed_date": "",
+        "end_date": ""
       }
     ]
   },
@@ -113,7 +123,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "joseph-gromada"
+        "id": "joseph-gromada",
+        "wed_date": "",
+        "end_date": ""
       }
     ]
   },
@@ -150,7 +162,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "helen-dubaj"
+        "id": "helen-dubaj",
+        "wed_date": "",
+        "end_date": ""
       }
     ],
     "link": "carl"
@@ -176,7 +190,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "george-sertich"
+        "id": "george-sertich",
+        "wed_date": "",
+        "end_date": ""
       }
     ]
   },
@@ -201,7 +217,9 @@ var people = [
     ],
     "spouses": [
       {
-        "id": "tillie-balogh"
+        "id": "tillie-balogh",
+        "wed_date": "",
+        "end_date": ""
       }
     ],
     "link": "thaddeus"
