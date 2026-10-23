@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family tree embed example</title>
+  <style>
+    body { margin: 0; font-family: Georgia, serif; background: #f4f1ea; color: #222; }
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+    #tree { background: #fffdf8; border: 1px solid #e2dacd; border-radius: 16px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>The Puskarcik Family</h1>
+    <p>This plain HTML page loads one script and calls <code>FamilyTree.render()</code>.</p>
+    <div id="tree"></div>
+  </main>
+
+  <!-- 1. Load the script (copy family-tree.js to your own server, or link to it) -->
+  <script src="family-tree.js"></script>
+
+  <!-- 2. Supply your data as an array and render -->
+  <script>
+    var people = [
+      {
+        "id": "e9a877db-7062-43e0-a161-80f19c52b3db",
+        "name": "Ludwig Puskarczyk",
+        "gender": "M",
+        "birth_date": "c. 1870",
+        "death_date": "Unknown",
+        "birth_place": "Poland",
+        "bio": "Patriarch of the Puskarczyk family; emigrated from Poland.",
+        "parents": [],
+        "spouses": [
+          {
+            "id": "969865ee-cf09-4b12-ac46-add9ac2632a7"
+          }
+        ]
+      },
+      {
+        "id": "969865ee-cf09-4b12-ac46-add9ac2632a7",
+        "name": "Aniela Malek",
+        "gender": "F",
+        "birth_date": "c. 1875",
+        "death_date": "Unknown",
+        "birth_place": "Poland",
+        "bio": "Matriarch of the Puskarczyk family.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "1e1792f7-d45b-48d6-94bd-05690a7b6ba5",
+        "name": "Chester Puskarcik",
+        "gender": "M",
+        "birth_date": "1895",
+        "death_date": "1970",
+        "bio": "Son of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "253345ed-fc32-40de-9a52-caecf0914fff"
+          }
+        ]
+      },
+      {
+        "id": "253345ed-fc32-40de-9a52-caecf0914fff",
+        "name": "Vera",
+        "gender": "F",
+        "birth_date": "1900",
+        "death_date": "1975",
+        "bio": "Wife of Chester Puskarcik.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "e4c8aa5e-46ea-44b9-8f35-974d4bbcda93",
+        "name": "Helen Puskarcik",
+        "gender": "F",
+        "birth_date": "1898",
+        "death_date": "1980",
+        "bio": "Daughter of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "57e2b4f4-facc-44b6-9d67-955b7f816b83"
+          }
+        ]
+      },
+      {
+        "id": "57e2b4f4-facc-44b6-9d67-955b7f816b83",
+        "name": "Michael Cvengros",
+        "gender": "M",
+        "birth_date": "1895",
+        "death_date": "1972",
+        "bio": "Husband of Helen.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "beccc22a-8474-4d94-8d54-ead717d0ced8",
+        "name": "Lottie Puskarcik",
+        "gender": "F",
+        "birth_date": "1900",
+        "death_date": "1985",
+        "bio": "Daughter of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "1cd312a8-6daa-4a39-8395-4d3169030437"
+          }
+        ]
+      },
+      {
+        "id": "1cd312a8-6daa-4a39-8395-4d3169030437",
+        "name": "Philip Houser",
+        "gender": "M",
+        "birth_date": "1898",
+        "death_date": "1980",
+        "bio": "Husband of Lottie.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "321abbfa-ad4a-4009-827c-a90a7da72ccd",
+        "name": "Jean Puskarcik",
+        "gender": "F",
+        "birth_date": "1902",
+        "death_date": "1988",
+        "bio": "Daughter of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "9b81dbf5-a8b7-4091-961c-455987aba3dc"
+          }
+        ]
+      },
+      {
+        "id": "9b81dbf5-a8b7-4091-961c-455987aba3dc",
+        "name": "Joseph Gromada",
+        "gender": "M",
+        "birth_date": "1900",
+        "death_date": "1985",
+        "bio": "Husband of Jean.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "9cab1b85-4ce2-46a9-be6d-9a3fd209592f",
+        "name": "Stephanie Puskarcik",
+        "gender": "F",
+        "birth_date": "1904",
+        "death_date": "1990",
+        "bio": "Daughter of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": []
+      },
+      {
+        "id": "479f7c51-a686-4392-8834-11e905f0c5a3",
+        "name": "Carl John Puskarcik",
+        "gender": "M",
+        "birth_date": "1906",
+        "death_date": "1985",
+        "bio": "Son of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "52135c86-f76c-479c-b6b6-60a86a5ba9fe"
+          }
+        ]
+      },
+      {
+        "id": "52135c86-f76c-479c-b6b6-60a86a5ba9fe",
+        "name": "Helen Dubaj",
+        "gender": "F",
+        "birth_date": "1910",
+        "death_date": "1992",
+        "bio": "Wife of Carl John.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "0fa86571-0cdd-40ec-8bbb-fbacec28af41",
+        "name": "Stasia (Tunny) Puskarcik",
+        "gender": "F",
+        "birth_date": "1908",
+        "death_date": "1990",
+        "bio": "Daughter of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "f7584803-9b21-463f-9194-b9f10a6d565d"
+          }
+        ]
+      },
+      {
+        "id": "f7584803-9b21-463f-9194-b9f10a6d565d",
+        "name": "George Sertich",
+        "gender": "M",
+        "birth_date": "1905",
+        "death_date": "1988",
+        "bio": "Husband of Stasia.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "4f1067d1-5959-4b2e-a3d0-bb40eb099a04",
+        "name": "Thaddeus Robert Puskarcik",
+        "gender": "M",
+        "birth_date": "1912",
+        "death_date": "1995",
+        "bio": "Son of Ludwig & Aniela.",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db",
+          "969865ee-cf09-4b12-ac46-add9ac2632a7"
+        ],
+        "spouses": [
+          {
+            "id": "393072f8-6284-47ad-a55d-a86a7a356984"
+          }
+        ]
+      },
+      {
+        "id": "393072f8-6284-47ad-a55d-a86a7a356984",
+        "name": "Tillie Theresa Marie Balogh",
+        "gender": "F",
+        "birth_date": "1915",
+        "death_date": "1998",
+        "bio": "Wife of Thaddeus Robert.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "dc6dbf0a-307b-40e8-b584-ef9e213dd0f3",
+        "name": "Test Person",
+        "gender": "M",
+        "parents": [
+          "e9a877db-7062-43e0-a161-80f19c52b3db"
+        ],
+        "spouses": [
+          {
+            "id": "f7a5ae62-b206-4942-8b7d-7e3da03de2aa",
+            "wed_date": "1942"
+          },
+          {
+            "id": "dbe7d63b-dc2f-445f-95c2-712d9bb81a10",
+            "wed_date": "1956"
+          }
+        ]
+      },
+      {
+        "id": "f7a5ae62-b206-4942-8b7d-7e3da03de2aa",
+        "name": "Anna First",
+        "gender": "F",
+        "birth_date": "1920",
+        "death_date": "1965",
+        "bio": "First wife of Test Person.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "dbe7d63b-dc2f-445f-95c2-712d9bb81a10",
+        "name": "Maria Second",
+        "gender": "F",
+        "birth_date": "1930",
+        "death_date": "1998",
+        "bio": "Second wife of Test Person after Anna died.",
+        "parents": [],
+        "spouses": []
+      },
+      {
+        "id": "1c89bb25-f4b5-42ed-b68d-5617d41bc215",
+        "name": "Adam Person",
+        "gender": "M",
+        "birth_date": "1945",
+        "bio": "Son of Test Person and Anna First.",
+        "parents": [
+          "dc6dbf0a-307b-40e8-b584-ef9e213dd0f3",
+          "f7a5ae62-b206-4942-8b7d-7e3da03de2aa"
+        ],
+        "spouses": []
+      },
+      {
+        "id": "377e0cd7-5c08-418d-a506-24f2b843f73a",
+        "name": "Bertram Person",
+        "gender": "M",
+        "birth_date": "1958",
+        "bio": "Son of Test Person and Maria Second.",
+        "parents": [
+          "dc6dbf0a-307b-40e8-b584-ef9e213dd0f3",
+          "dbe7d63b-dc2f-445f-95c2-712d9bb81a10"
+        ],
+        "spouses": []
+      },
+      {
+        "id": "2f877964-9c05-40ab-8934-3fc0cfd1d86c",
+        "name": "Cecilia Person",
+        "gender": "F",
+        "birth_date": "1961",
+        "bio": "Daughter of Test Person and Maria Second.",
+        "parents": [
+          "dc6dbf0a-307b-40e8-b584-ef9e213dd0f3",
+          "dbe7d63b-dc2f-445f-95c2-712d9bb81a10"
+        ],
+        "spouses": []
+      }
+    ];
+
+    var tree = FamilyTree.render("#tree", people, {
+      showDates: true,
+      onSelect: function (id, person) { console.log("Now viewing", person.name); }
+      // onFocusClick: function (person) { ... }  // omit to use the built-in detail window
+    });
+  </script>
+</body>
+</html>

@@ -60,13 +60,16 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
     const newLines = [];
     // Helper: attach a wed_date to the most-recently-pushed line, along with
     // the midpoint used for the hover tooltip anchor.
-    const attachWed = (midX, midY, text) => {
+    // Hover zone covers only the visible gap between the two boxes (x1..x2).
+    const attachWed = (x1, x2, y, text) => {
       if (!text || newLines.length === 0) return;
       const last = newLines[newLines.length - 1];
       last.wedDate = text;
-      last.midX = midX;
-      last.midY = midY;
+      last.hitD = `M${x1},${y} L${x2},${y}`;
+      last.midX = (x1 + x2) / 2;
+      last.midY = y;
     };
+    const right = (r) => r.x + r.w;
     const focusRect = rect(focusRef.current);
     if (!focusRect) {
       setLines([]);
@@ -84,7 +87,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       // the visible dashed segment always terminates cleanly at each box edge.
       newLines.push({ d: `M${a.r.cx},${y} L${b.r.cx},${y}`, kind: "spouse" });
       // Wedding date hover anchor: midpoint between the two parents on that line
-      attachWed((a.r.cx + b.r.cx) / 2, y, tree.parents_wed_date);
+      attachWed(Math.min(right(a.r), right(b.r)), Math.max(a.r.x, b.r.x), y, tree.parents_wed_date);
       const midX = (a.r.cx + b.r.cx) / 2;
       const busY = Math.max(a.r.bottom, b.r.bottom) + 18;
       newLines.push({ d: `M${midX},${y} L${midX},${busY}`, kind: "parent" });
@@ -107,7 +110,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
       if (sr) {
         const y = focusRect.cy;
         newLines.push({ d: `M${focusRect.cx},${y} L${sr.cx},${y}`, kind: "spouse" });
-        attachWed((focusRect.cx + sr.cx) / 2, y, (tree.spouse_wed_dates || {})[firstPartner.id]);
+        attachWed(right(focusRect), sr.x, y, (tree.spouse_wed_dates || {})[firstPartner.id]);
         // Align subsequent partner rows under the first partner's DOM x
         if (fpEl && trunkColRef.current) {
           const fpDom = fpEl.getBoundingClientRect();
@@ -148,7 +151,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
             d: `M${trunkX},${row.r.cy} L${row.r.cx},${row.r.cy}`,
             kind: "spouse",
           });
-          attachWed((trunkX + row.r.cx) / 2, row.r.cy, row.wedDate);
+          attachWed(trunkX, row.r.x, row.r.cy, row.wedDate);
         } else {
           newLines.push({
             d: `M${trunkX},${row.r.cy} L${row.r.x},${row.r.cy}`,
@@ -170,7 +173,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
             const y = cr.cy;
             // center-to-center dashed marriage line
             newLines.push({ d: `M${cr.cx},${y} L${firstSr.cx},${y}`, kind: "spouse" });
-            attachWed((cr.cx + firstSr.cx) / 2, y, (tree.child_spouse_wed_dates || {})[`${c.id}:${sps[0].id}`]);
+            attachWed(right(cr), firstSr.x, y, (tree.child_spouse_wed_dates || {})[`${c.id}:${sps[0].id}`]);
           }
         }
         const extras = sps.slice(1)
@@ -182,7 +185,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
           newLines.push({ d: `M${trunkX},${cr.bottom} L${trunkX},${lastY}`, kind: "spouse" });
           extras.forEach(({ sp, r }) => {
             newLines.push({ d: `M${trunkX},${r.cy} L${r.cx},${r.cy}`, kind: "spouse" });
-            attachWed((trunkX + r.cx) / 2, r.cy, (tree.child_spouse_wed_dates || {})[`${c.id}:${sp.id}`]);
+            attachWed(trunkX, r.x, r.cy, (tree.child_spouse_wed_dates || {})[`${c.id}:${sp.id}`]);
           });
         }
       });
@@ -192,15 +195,18 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
     if (typeof onLayout === "function") onLayout();
   };
 
+  const computeRef = useRef(computeLines);
+  computeRef.current = computeLines;
+
   useLayoutEffect(() => {
     computeLines();
-  }, [tree]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tree, extraPartnerX]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const onResize = () => computeLines();
+    const onResize = () => computeRef.current();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!tree || !tree.focus) return null;
 
@@ -235,7 +241,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
           l.wedDate ? (
             <path
               key={`h-${i}`}
-              d={l.d}
+              d={l.hitD}
               stroke="rgba(0,0,0,0)"
               strokeWidth={18}
               fill="none"

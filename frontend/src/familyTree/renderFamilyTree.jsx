@@ -11,6 +11,7 @@ import "./familyTree.css";
  */
 export function renderFamilyTree(container, people, options = {}) {
   const mount = document.createElement("div");
+  mount.className = "ft-root";
   container.appendChild(mount);
   const root = createRoot(mount);
   const state = { people, options, focusId: options.focusId || defaultFocusId(people), detail: null };

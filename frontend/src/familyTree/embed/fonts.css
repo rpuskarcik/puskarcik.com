@@ -1,0 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;600&family=JetBrains+Mono:wght@400&display=swap");
+.ft-root { font-family: "Manrope", system-ui, sans-serif; color: #1c2024; -webkit-font-smoothing: antialiased; }
+.ft-root, .ft-root *, .ft-root *::before, .ft-root *::after { box-sizing: border-box; }
+.ft-root .font-serif-display { font-family: "Fraunces", ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+.ft-root .font-mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+.ft-root dl, .ft-root dd, .ft-root p, .ft-root h2 { margin: 0; }
+.ft-root button { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
