@@ -25,7 +25,15 @@ A family tree graphic with rounded rectangles and arrows showing the flow (start
 - Backend: auth (register/login/logout/me), people list/detail, tree fetch centered on any person, changes submit, admin approve/reject, admin direct CRUD
 - Frontend: Tree page with re-center, parents/spouse/children/child-spouses rendering with SVG connectors, hover tooltip dates for authed users, detail modal with back-to-previous-tree, login/register, contributor portal (add/edit person + add relationship), admin panel with pending/approved/rejected tabs
 
+## Implemented (Jun 2026) — Modular renderer
+- `renderFamilyTree(container, peopleArray, options)` in `frontend/src/familyTree/` is the single entry point. It doesn't depend on any database. Docs are in `familyTree/README.md`
+- Pure `buildTree(people, focusId)` builds the view model on the client. `sampleData.js` is a snapshot of the DB
+- `GET /api/tree-data` returns `{root_id, people[]}` in the renderer format. TreePage uses it, and `/demo` renders from static data
+- Supports marriage `end_date` (label "1942 – 1968")
+
 ## Backlog (P1/P2)
+- Pencil edit affordance on hover of any node
+- Undo recent delete (admin), CSV/GEDCOM import, grandchildren peek
 - Email notification to admin on new submission (currently in-app only)
 - Delete person / delete relationship UI in contributor portal
 - Public person profile sub-pages (like /chester on original site)

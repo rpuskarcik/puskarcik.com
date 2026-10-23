@@ -1,0 +1,39 @@
+{
+  "summary": "Regression test of the renderFamilyTree() refactor. Backend GET /api/tree-data: 5/5 pytest pass (shape, root=Ludwig w/ Aniela + 9 children, valid refs, authed dates, admin add-person reflected + cleanup). Frontend: home tree renders (9 children, Aniela inline, 23 SVG paths), child click re-centers + URL /tree/<id> + parents row + Viewing label; Back/Root/browser-back work; /tree/<Test Person> shows Anna First inline and Maria Second on separate dashed row with Adam/Bertram/Cecilia; wed-date tooltips 'm. 1942'/'m. 1956' on hover; logged-in person-tooltip shows dates; focus click opens shadcn PersonDetailModal with back button; /demo renders from static data, re-centers, ft-detail-window opens/closes; newly added person appears after navigating /admin -> /. No createRoot/unmount console errors. Found 1 React setState-in-render warning and 1 minor connector overshoot.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/tree-data", "issue": "spouse wed_date/end_date are returned to anonymous users (people dates are hidden but marriage dates are not). Confirm intended; tooltip 'm. 1942' visible while signed out."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "FamilyTreeView extra child-spouse rows", "issue": "Dashed line overshoots ~20px past the right edge of a child's extra spouse box (e.g. Maria Second in root view and /demo). RCA: the ref div for extras (FamilyTreeView.jsx ~line 371) is a full-width block inside flex-col, so rect().cx is the wrapper's centre (862px) not the node's (753px); line M573,693 L862.5,693 vs node right edge 843. Fix: add className=\"w-fit\" to that wrapper div (as done for partner rows).", "selector": "[data-testid='child-spouse-node-dbe7d63b-dc2f-445f-95c2-712d9bb81a10']", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "PersonDetailModal 'Back to previous tree'", "issue": "Console error: 'Cannot update a component (BrowserRouter) while rendering a different component (TreePage)'. RCA: TreePage.handleModalBack calls navigate() inside the setHistory updater function, which React runs during render. Fix: read history from state, compute prev, call setHistory(h=>h.slice(0,-1)) and navigate() outside the updater (as goBack does).", "affected_selectors": ["[data-testid='modal-back-btn']"]}
+    ],
+    "design_issues": [
+      {"screen": "PersonDetailModal", "issues": ["Two close 'X' icons appear at the top-right (shadcn DialogContent default close + custom close), slightly offset - verify and hide one"]},
+      {"screen": "/demo sampleData.js", "issues": ["Static sample includes test records 'Test Person', 'Anna First', 'Maria Second' copied from DB - consider replacing with realistic sample names"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_tree_data.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Move navigate() out of setHistory updater in TreePage.handleModalBack",
+    "Add w-fit to extra child-spouse ref wrapper in FamilyTreeView.jsx so dashed line ends inside the node",
+    "Decide whether wed dates should be hidden from anonymous users in /api/tree-data",
+    "Remove duplicate close icon in PersonDetailModal (if confirmed)"
+  ],
+  "critical_code_review_comments": [
+    "TreePage.handleModalBack: side effect (navigate) inside state updater - also runs twice under StrictMode",
+    "FamilyTreeView lines only recompute on tree change/window resize; container size changes (fonts loading late, sidebar) won't redraw connectors - consider ResizeObserver",
+    "TreePage refetches tree-data only on mount/[user]; works because route change remounts, but in-page edits via modal (Propose an edit) won't refresh without navigation"
+  ],
+  "updated_files": ["/app/backend/tests/test_tree_data.py"],
+  "success_rate": {"backend": "100%", "frontend": "95%"},
+  "seed_data_creation": "Temporary TEST_ people created and deleted; no seed data modified",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Root id e9a877db-7062-43e0-a161-80f19c52b3db (Ludwig). Multi-spouse person: Test Person dc6dbf0a-307b-40e8-b584-ef9e213dd0f3 (Anna First f7a5ae62 m.1942, Maria Second dbe7d63b m.1956). Chester 1e1792f7-d45b-48d6-94bd-05690a7b6ba5. Run pytest /app/backend/tests/test_tree_data.py with REACT_APP_BACKEND_URL exported."
+}

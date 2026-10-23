@@ -15,7 +15,7 @@ export default function PersonDetailModal({ open, person, onClose, onBack, canGo
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        className="max-w-lg bg-[#fffdf8] border-[#e2dacd]"
+        className="max-w-lg bg-[#fffdf8] border-[#e2dacd] [&>button.absolute]:hidden"
         data-testid="person-detail-modal"
       >
         <DialogHeader>

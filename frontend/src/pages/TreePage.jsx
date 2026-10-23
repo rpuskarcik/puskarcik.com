@@ -74,12 +74,10 @@ export default function TreePage() {
 
   const handleModalBack = () => {
     setModalPerson(null);
-    setHistory((h) => {
-      if (h.length === 0) return h;
-      const prev = h[h.length - 1];
-      navigate(`/tree/${prev}`);
-      return h.slice(0, -1);
-    });
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    navigate(`/tree/${prev}`);
   };
 
   const goHome = () => {

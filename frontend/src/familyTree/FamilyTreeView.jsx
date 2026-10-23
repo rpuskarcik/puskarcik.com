@@ -370,6 +370,7 @@ export default function FamilyTree({ tree, showDates, onSelect, onFocusClick, on
                       {extras.map((sp) => (
                         <div
                           key={sp.id}
+                          className="w-fit"
                           ref={(el) =>
                             (childSpouseRefs.current[`${c.id}:${sp.id}`] = el)
                           }
